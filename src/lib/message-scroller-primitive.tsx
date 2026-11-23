@@ -1996,8 +1996,17 @@ function useMessageScrollerController({
     const items = getMessageScrollerItems(content, spacerRef.current)
     // agentui: every row's size watched, the app's with no messageId too
     // (they are not registered): one above the view mounting (windowed,
-    // first measured) keeps the place as a registered one does.
-    for (const item of items) observeRowSize(item, true)
+    // first measured) keeps the place as a registered one does. A new
+    // row's height noted now (on the layout holdPlace read), as the
+    // observer's first report only notes it: one mounted before that (a
+    // scroll mounts what it brings near before the frame is drawn) would
+    // change size unseen, and push what is in view down.
+    const heights = rowHeightsRef.current
+    for (const item of items) {
+      if (!heights.has(item))
+        heights.set(item, item.getBoundingClientRect().height)
+      observeRowSize(item, true)
+    }
     const previousItemCount = itemCountRef.current
     const previousFirstItem = firstItemRef.current
 

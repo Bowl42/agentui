@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { flushSync } from "react-dom"
 import {
   MessageScroller as MessageScrollerPrimitive,
   useMessageScroller as useMessageScrollerPrimitive,
@@ -22,8 +23,17 @@ import { ArrowDown02Icon } from "@hugeicons/core-free-icons"
 function createPin() {
   let viewport: HTMLDivElement | null = null
   let unpin: (() => void) | null = null
+  let moved: (() => void) | null = null
   return {
     viewport: () => viewport,
+    /**
+     * After a pin scrolled in an animation frame, whose scroll event comes
+     * only after that frame is drawn: what it brought near is mounted.
+     */
+    moved: () => moved?.(),
+    onMoved: (next: (() => void) | null) => {
+      moved = next
+    },
     setViewport: (node: HTMLDivElement | null) => {
       viewport = node
     },
@@ -57,6 +67,15 @@ const MessageScrollerPinContext = React.createContext<{
 // viewport and unmounts past three, so a scroll back and forth does not
 // mount and unmount it; one holding the focus or the selection stays. While
 // all are asked for (a find searching the conversation's text), all mount.
+//
+// The observers tell of an intersection after the frame they saw it in is
+// drawn, and the item mounts in a later one: a fast scroll (a fling, the
+// scrollbar dragged, a jump to a message, a conversation opened at one)
+// outran them, and what came into view was drawn as empty boxes for a
+// frame or more. A frame whose scroll outran them mounts at once
+// (flushSync), before its layout and paint, the boxes within a view of
+// the viewport, found by halving over the rows. The observers still
+// mount the rest and unmount.
 const windowNear = "100% 0px"
 const windowFar = "300% 0px"
 /** How many messages from the end it opens at mount at once. */
@@ -77,13 +96,83 @@ type WindowedItem = {
 const latest = (entries: IntersectionObserverEntry[]) =>
   new Map(entries.map((entry) => [entry.target, entry])).values()
 
+/**
+ * The rows from the first whose bottom is past `from` to the last whose
+ * top is before `to`, found by halving: rows are in order down the
+ * content, so a scroll reads a few rects, not every row's.
+ */
+function* rowsBetween(content: Element, from: number, to: number) {
+  const rows = content.children
+  let count = rows.length
+  // The primitive's spacer, last, hidden while not needed (no rect then).
+  if (rows[count - 1]?.hasAttribute("data-message-scroller-spacer")) count -= 1
+  let low = 0
+  let high = count
+  while (low < high) {
+    const middle = (low + high) >> 1
+    if (rows[middle]!.getBoundingClientRect().bottom > from) high = middle
+    else low = middle + 1
+  }
+  for (let index = low; index < count; index++) {
+    const row = rows[index]!
+    if (row.getBoundingClientRect().top >= to) return
+    yield row
+  }
+}
+
 function createWindowing(viewport: () => HTMLElement | null) {
   const items = new Map<Element, WindowedItem>()
+  // The items whose content is not mounted, by element: how to mount each.
+  const boxes = new Map<Element, () => void>()
   let near: IntersectionObserver | null = null
   let far: IntersectionObserver | null = null
   let sizes: ResizeObserver | null = null
   let all = 0
   const listeners = new Set<() => void>()
+
+  /** Mounts the boxes within a view of the viewport, before it is drawn. */
+  const reveal = () => {
+    const root = viewport()
+    const content = root?.firstElementChild
+    if (boxes.size === 0 || all > 0 || !root || !content) return
+    const view = root.getBoundingClientRect()
+    const mount: (() => void)[] = []
+    for (const row of rowsBetween(
+      content,
+      view.top - view.height,
+      view.bottom + view.height
+    )) {
+      const box = boxes.get(row)
+      if (box) mount.push(box)
+    }
+    if (mount.length > 0) flushSync(() => mount.forEach((box) => box()))
+  }
+  // Looked for only where a frame's scroll outran the near observer: by
+  // half a view or more since the frame before (where it last looked), as
+  // the observer, a view ahead, mounts in a frame or two. A wheel's or a
+  // finger's scroll reads no rect before the frame's layout, where a
+  // message just mounted would force one.
+  let top = 0
+  let height = 0
+  let seen: number | null = null
+  const check = () => {
+    if (seen === null || Math.abs(top - seen) >= height / 2) reveal()
+    seen = top
+  }
+  // Once a frame, not on every scroll event (a trackpad gives several):
+  // in an animation frame, which the frame's scroll events come before
+  // and its style, layout and paint after.
+  let frame = 0
+  let scrolled: HTMLElement | null = null
+  const onScroll = () => {
+    if (!scrolled || boxes.size === 0) return
+    top = scrolled.scrollTop
+    height = scrolled.clientHeight
+    frame ||= window.requestAnimationFrame(() => {
+      frame = 0
+      check()
+    })
+  }
 
   const start = () => {
     const root = viewport()
@@ -114,6 +203,34 @@ function createWindowing(viewport: () => HTMLElement | null) {
   }
 
   return {
+    /**
+     * Marks an item's content not mounted until the returned function is
+     * called, `mount` mounting it.
+     */
+    box(element: Element, mount: () => void) {
+      boxes.set(element, mount)
+      return () => {
+        if (boxes.get(element) === mount) boxes.delete(element)
+      }
+    },
+    /** After a scroll in an animation frame, its event a frame later. */
+    moved() {
+      const root = viewport()
+      if (!root || boxes.size === 0) return
+      top = root.scrollTop
+      height = root.clientHeight
+      check()
+    },
+    /**
+     * Watches the viewport's scroll; as its ref is set, before the items'
+     * layout effects and the first scroll.
+     */
+    attach(root: HTMLElement | null) {
+      if (root === scrolled) return
+      scrolled?.removeEventListener("scroll", onScroll)
+      root?.addEventListener("scroll", onScroll, { passive: true })
+      scrolled = root
+    },
     /** Watches an item; without observers to window by, it is near. */
     observe(element: HTMLElement, item: WindowedItem) {
       watchSelection()
@@ -151,8 +268,12 @@ function createWindowing(viewport: () => HTMLElement | null) {
       near?.disconnect()
       far?.disconnect()
       sizes?.disconnect()
-      near = far = sizes = null
+      scrolled?.removeEventListener("scroll", onScroll)
+      window.cancelAnimationFrame(frame)
+      frame = 0
+      near = far = sizes = scrolled = null
       items.clear()
+      boxes.clear()
     },
   }
 }
@@ -249,6 +370,7 @@ function hold(
     window.cancelAnimationFrame(frame)
     frame = window.requestAnimationFrame(() => {
       scroll()
+      pin.moved()
       at = viewport.scrollTop
       height = viewport.scrollHeight
     })
@@ -332,6 +454,11 @@ function MessageScrollerProvider({
   React.useEffect(() => pin.end, [pin])
   const [windowing] = React.useState(() => createWindowing(pin.viewport))
   React.useEffect(() => windowing.stop, [windowing])
+  React.useEffect(() => {
+    if (!windowed) return undefined
+    pin.onMoved(windowing.moved)
+    return () => pin.onMoved(null)
+  }, [pin, windowing, windowed])
   const value = React.useMemo(
     () => ({
       pin,
@@ -529,13 +656,15 @@ function MessageScrollerViewport({
 }: React.ComponentProps<typeof MessageScrollerPrimitive.Viewport>) {
   const context = React.useContext(MessageScrollerPinContext)
   const pin = context?.pin
+  const windowing = React.useContext(MessageScrollerWindowContext)?.windowing
   const setRef = React.useCallback(
     (node: HTMLDivElement | null) => {
       pin?.setViewport(node)
+      windowing?.attach(node)
       if (typeof ref === "function") return ref(node)
       if (ref) ref.current = node
     },
-    [pin, ref]
+    [pin, windowing, ref]
   )
   // Started at the end, it is held there while the messages settle and
   // come, until the reader scrolls.
@@ -662,6 +791,15 @@ function MessageScrollerItem({
     // Once, as it mounts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // A box, until it mounts: a scroll that brings it near mounts it before
+  // the frame is drawn. In a layout effect, so the first scroll, to where
+  // it opens, finds it.
+  React.useLayoutEffect(() => {
+    const node = element.current
+    if (!node || !windowing || shown) return undefined
+    return windowing.box(node, () => setNear(true))
+  }, [windowing, shown])
 
   React.useEffect(() => {
     const node = element.current

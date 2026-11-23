@@ -146,3 +146,21 @@ test("message-scroller: scroll 1000 messages, frames included", async () => {
   }
   reportFrames("message-scroller scroll step, 1000 messages", samples)
 })
+
+// A fling or a scrollbar drag: a view and a half a frame, past messages
+// never mounted, which mount as they come (the frames after included, as
+// the observers mount them there).
+test("message-scroller: fling 3000 messages, frames included", async () => {
+  const host = render(<Chat initial={conversation(3000)} />)
+  for (let i = 0; i < 10; i++) await frame()
+  const element = viewport(host)
+  const samples = []
+  for (let step = 0; step < 40; step++) {
+    samples.push(
+      await measureFrames(() => {
+        element.scrollTop -= element.clientHeight * 1.5
+      }, 3)
+    )
+  }
+  reportFrames("message-scroller fling step, 3000 messages", samples)
+})

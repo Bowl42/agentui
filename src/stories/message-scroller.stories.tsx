@@ -1079,6 +1079,167 @@ export const WindowedBeforeMeasured: Story = {
 }
 
 /**
+ * The near observer's entries held back, as a fast scroll outruns them:
+ * the browser tells of an intersection after the frame it drew, and the
+ * message mounts in a later one, a blank box drawn in between.
+ */
+function holdBackNear() {
+  const Native = window.IntersectionObserver
+  const timeouts = new Set<ReturnType<typeof setTimeout>>()
+  window.IntersectionObserver = class extends Native {
+    constructor(
+      callback: IntersectionObserverCallback,
+      options?: IntersectionObserverInit
+    ) {
+      const near = String(options?.rootMargin).startsWith("100%")
+      super(
+        near
+          ? (entries, observer) => {
+              const timeout = setTimeout(() => {
+                timeouts.delete(timeout)
+                callback(entries, observer)
+              }, 2000)
+              timeouts.add(timeout)
+            }
+          : callback,
+        options
+      )
+    }
+  }
+  return () => {
+    window.IntersectionObserver = Native
+    timeouts.forEach(clearTimeout)
+  }
+}
+
+/** The windowed items any of the viewport shows: empty boxes drawn. */
+function blanksInView(viewport: HTMLElement) {
+  const view = viewport.getBoundingClientRect()
+  return [...viewport.querySelectorAll<HTMLElement>("[data-windowed]")]
+    .filter((item) => {
+      const rect = item.getBoundingClientRect()
+      return rect.bottom > view.top && rect.top < view.bottom
+    })
+    .map((item) => item.dataset.messageId)
+}
+
+/**
+ * Blank boxes in view in each of the next frames, as drawn: read once the
+ * frame's callbacks have run (the near observer held back, nothing mounts
+ * between the frame and the task after it).
+ */
+async function blanksDrawn(viewport: () => HTMLElement, frames = 2) {
+  const blanks: string[] = []
+  for (let at = 0; at < frames; at++) {
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => setTimeout(resolve))
+    )
+    blanks.push(...blanksInView(viewport()).map((id) => `${at}:${id}`))
+  }
+  return blanks
+}
+
+/**
+ * A fling up a long conversation, a view and a half a frame, then the
+ * scrollbar dragged from end to end: what comes into view is drawn
+ * mounted in the frame it comes in, never as an empty box, though the
+ * observers tell of it too late.
+ */
+export const WindowedFling: Story = {
+  render: Windowed.render,
+  beforeEach: holdBackNear,
+  play: async ({ canvas }) => {
+    const viewport = canvas.getByRole("region", { name: "Conversation" })
+    await still(viewport)
+    const blanks: string[] = []
+    while (viewport.scrollTop > 0) {
+      viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -720 }))
+      viewport.scrollTop -= viewport.clientHeight * 1.5
+      blanks.push(...(await blanksDrawn(() => viewport, 1)))
+    }
+    const end = () => viewport.scrollHeight - viewport.clientHeight
+    for (const at of [0.9, 0.2, 0.6, 0.05, 0.75, 0.4]) {
+      viewport.scrollTop = end() * at
+      blanks.push(...(await blanksDrawn(() => viewport)))
+    }
+    await expect(blanks).toEqual([])
+    // Those out of view still windowed.
+    await expect(
+      viewport.querySelectorAll("[data-windowed]").length
+    ).toBeGreaterThan(10)
+  },
+}
+
+/** Switching between two long conversations, one put at a message. */
+function Switching() {
+  const [which, setWhich] = React.useState<"a" | "b">("a")
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setWhich(which === "a" ? "b" : "a")}
+      >
+        Switch
+      </Button>
+      <div className="flex h-120 w-md max-w-full flex-col overflow-hidden rounded-xl border">
+        <MessageScrollerProvider key={which} autoScroll>
+          {which === "b" && <ScrollTo messageId="b-40" />}
+          <MessageScroller>
+            <MessageScrollerViewport aria-label="Conversation">
+              <MessageScrollerContent className="p-4">
+                {tall.map((message, index) => (
+                  <MessageScrollerItem
+                    key={message.id}
+                    messageId={`${which}-${index}`}
+                  >
+                    <Message>
+                      <MessageContent>
+                        <Bubble variant="muted">
+                          <BubbleContent className="whitespace-pre-wrap">
+                            {index % 3 === 0
+                              ? `Short message ${index}.`
+                              : message.text}
+                          </BubbleContent>
+                        </Bubble>
+                      </MessageContent>
+                    </Message>
+                  </MessageScrollerItem>
+                ))}
+              </MessageScrollerContent>
+            </MessageScrollerViewport>
+          </MessageScroller>
+        </MessageScrollerProvider>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * A conversation switched to, at its end or put at a message: what is in
+ * view is mounted in the first frame drawn, not boxes filled in later.
+ */
+export const WindowedSwitch: Story = {
+  render: () => <Switching />,
+  beforeEach: holdBackNear,
+  play: async ({ canvas }) => {
+    const button = canvas.getByRole("button", { name: "Switch" })
+    const blanks: string[] = []
+    for (let step = 0; step < 4; step++) {
+      // Clicked here, so the next frame is the first with it.
+      button.click()
+      const viewport = () =>
+        canvas.getByRole("region", { name: "Conversation" })
+      blanks.push(
+        ...(await blanksDrawn(viewport, 3)).map((b) => `${step} ${b}`)
+      )
+      await still(viewport())
+    }
+    await expect(blanks).toEqual([])
+  },
+}
+
+/**
  * Scrolled from the end by a script or a scrollbar, with no wheel, touch
  * or key: the end is let go, so the messages mounting above as they come
  * near do not pull the view back to it.
