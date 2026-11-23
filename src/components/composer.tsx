@@ -871,6 +871,10 @@ type ComposerVoiceLabels = {
    * no tooltip.
    */
   shortcut: string
+  /** With `ready`: the microphone is open, a press records at once. */
+  ready: string
+  /** Asked to start, not started yet (`onStart` pending). */
+  starting: string
 }
 
 /** An audio input the mic can record from, as the app lists them. */
@@ -6077,6 +6081,8 @@ const defaultVoiceLabels: ComposerVoiceLabels = {
   systemDefault: "System default",
   unnamedInput: (place) => `Microphone ${place}`,
   shortcut: "",
+  ready: "Microphone ready",
+  starting: "Starting the microphone",
 }
 
 /** Held this long or more, the mic records until let go; less, a tap. */
@@ -6195,6 +6201,13 @@ function liveText(input: VoiceInput) {
  * the take, the words kept, not sent. Of several mics with one, the one
  * whose composer has the focus answers it, else the one that last had
  * it, else the first mounted. `labels.shortcut` says so in its tooltip.
+ *
+ * `ready` (the app keeps the microphone open, so a press records at
+ * once) shows on the idle mic: its glyph in the text's colour and a dot
+ * at its corner, described as `labels.ready`. While `onStart` is
+ * pending (opening a microphone takes from half a second to seconds),
+ * a spinner takes the glyph's place, described as `labels.starting`;
+ * let go meanwhile, a held press is a tap, as before.
  */
 function ComposerVoice({
   onStart,
@@ -6211,6 +6224,7 @@ function ComposerVoice({
   onInputChange,
   onInputsOpen,
   shortcut,
+  ready = false,
   labels,
   className,
   onClick,
@@ -6267,6 +6281,11 @@ function ComposerVoice({
    * its `KeyboardEvent.code`: `"AltRight"`, `"F13"`. None, no key.
    */
   shortcut?: string
+  /**
+   * The microphone is open (the app keeps it so between takes): a press
+   * records at once. Shown on the idle mic.
+   */
+  ready?: boolean
   labels?: Partial<ComposerVoiceLabels>
 }) {
   const composer = useComposer()
@@ -6277,6 +6296,7 @@ function ComposerVoice({
   // the microphone meanwhile).
   const [starting, setStarting] = React.useState(false)
   const group = React.useRef<HTMLDivElement>(null)
+  const stateId = React.useId()
   const sessionRef = React.useRef(session)
   // A pointer or Space holding the mic down: where and when it started.
   const hold = React.useRef<{ at: number; x: number; rtl: boolean } | null>(
@@ -6545,10 +6565,16 @@ function ComposerVoice({
     }
   }, [shortcut, editor, actions, update])
 
+  // Whether a press records at once, or is opening the microphone.
+  const state = starting ? all.starting : ready ? all.ready : ""
   const button = (
     <ComposerButton
       data-slot="composer-voice"
+      data-ready={(ready && !starting) || undefined}
+      data-starting={starting || undefined}
       aria-label={all.record}
+      aria-describedby={state ? stateId : undefined}
+      aria-busy={starting || undefined}
       aria-keyshortcuts={shortcut ? ariaKey(shortcut) : undefined}
       disabled={disabled}
       onPointerDown={(event) => {
@@ -6606,10 +6632,33 @@ function ComposerVoice({
           start(false)
       }}
       onContextMenu={(event) => event.preventDefault()}
-      className={cn("touch-none select-none", !inputs?.length && className)}
+      className={cn(
+        "touch-none select-none data-ready:text-foreground data-starting:text-foreground",
+        !inputs?.length && className
+      )}
       {...props}
     >
-      <HugeiconsIcon icon={Mic01Icon} strokeWidth={2} />
+      {starting ? (
+        // Still where the reader asks for less motion: its shape says it.
+        <Spinner aria-hidden="true" className="motion-reduce:animate-none" />
+      ) : (
+        <HugeiconsIcon icon={Mic01Icon} strokeWidth={2} />
+      )}
+      {ready && !starting ? (
+        <span
+          aria-hidden
+          data-slot="composer-voice-ready"
+          // grid: mark (a status mark's dot at the glyph's upper end
+          // corner, 4px past it; the glyph centred in a 28px or 40px
+          // button)
+          className="absolute end-[calc(50%-12px)] top-[calc(50%-12px)] size-2 rounded-full bg-foreground"
+        />
+      ) : null}
+      {state ? (
+        <span id={stateId} hidden>
+          {state}
+        </span>
+      ) : null}
     </ComposerButton>
   )
   // Its shortcut, said in a tooltip.

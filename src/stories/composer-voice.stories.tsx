@@ -29,6 +29,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { Clock01Icon } from "@hugeicons/core-free-icons"
 import { onAPhone } from "@/stories/phone"
 import { coarseHitSize } from "@/stories/touch"
+import { reducedMotionAnimation } from "@/stories/motion"
 
 /** What the made-up speaker says, a word at a time. */
 const spoken =
@@ -88,6 +89,8 @@ function Demo({
   startError,
   startPending = false,
   queue = false,
+  ready = false,
+  startDelay = 0,
   shortcut,
   name = "Message",
   failOnce = false,
@@ -114,6 +117,10 @@ function Demo({
   startPending?: boolean
   /** A tool after the mic with a tooltip, as a queue button. */
   queue?: boolean
+  /** Whether the app keeps the microphone open: a press records at once. */
+  ready?: boolean
+  /** How long opening the microphone takes, in ms. */
+  startDelay?: number
   /** The key that drives the mic from anywhere, by its code. */
   shortcut?: string
   /** The editor's name. */
@@ -158,6 +165,7 @@ function Demo({
             maxDuration={maxDuration}
             submitOnFinish={submitOnFinish}
             shortcut={shortcut}
+            ready={ready}
             labels={shortcut ? { shortcut: "Hold Right ⌥ to talk" } : undefined}
             inputs={inputs}
             input={input}
@@ -171,6 +179,13 @@ function Demo({
               if (startError)
                 return Promise.reject(new DOMException("", startError))
               if (startPending) return new Promise<void>(() => {})
+              if (startDelay)
+                return new Promise<void>((resolve) =>
+                  setTimeout(() => {
+                    recorder.start()
+                    resolve()
+                  }, startDelay)
+                )
               recorder.start()
             }}
             onCancel={() => {
@@ -891,5 +906,91 @@ export const ShortcutTwoComposers: Story = {
     await user.keyboard("[AltRight]")
     await waitFor(() => expect(sideStart).toHaveBeenCalledTimes(2))
     await expect(args.onStart).not.toHaveBeenCalled()
+  },
+}
+
+/**
+ * The app keeps the microphone open between takes: the idle mic says a
+ * press records at once, its glyph in the text's colour with a dot at
+ * its corner, and in its description.
+ */
+export const Ready: Story = {
+  args: { ready: true },
+  play: async () => {
+    const mic = micOf()
+    await expect(mic).toHaveAttribute("data-ready")
+    await expect(mic).toHaveAccessibleDescription("Microphone ready")
+    const dot = mic.querySelector("[data-slot=composer-voice-ready]")!
+    await expect(dot).toBeVisible()
+    // At the glyph's upper end corner, past it by 4px.
+    const glyph = mic.querySelector("svg")!.getBoundingClientRect()
+    const box = dot.getBoundingClientRect()
+    await expect(Math.round(box.bottom - glyph.top)).toBe(4)
+    const end =
+      document.dir === "rtl" ? glyph.left - box.left : box.right - glyph.right
+    await expect(Math.round(end)).toBe(4)
+    // The text's colour, not the tools' grey.
+    await expect(getComputedStyle(mic).color).toBe(
+      getComputedStyle(editorOf()).color
+    )
+  },
+}
+
+/** Not ready (or not said): the mic as ever, no dot, no description. */
+export const NotReady: Story = {
+  tags: ["!autodocs"],
+  play: async () => {
+    const mic = micOf()
+    await expect(mic).not.toHaveAttribute("data-ready")
+    await expect(
+      mic.querySelector("[data-slot=composer-voice-ready]")
+    ).toBeNull()
+    await expect(mic).toHaveAccessibleDescription("")
+    await expect(getComputedStyle(mic).color).not.toBe(
+      getComputedStyle(editorOf()).color
+    )
+  },
+}
+
+/**
+ * A microphone slow to open: from the press until it has, a spinner in
+ * the mic's glyph's place (still where the reader asks for less motion),
+ * the mic busy and described as starting; then the recording.
+ */
+export const Starting: Story = {
+  args: { startDelay: 1200, ready: true },
+  play: async () => {
+    const mic = micOf()
+    await userEvent.click(mic)
+    await waitFor(() => expect(mic).toHaveAttribute("aria-busy", "true"))
+    await expect(mic).toHaveAccessibleDescription("Starting the microphone")
+    await expect(mic).not.toHaveAttribute("data-ready")
+    const spinner = mic.querySelector<SVGElement>("[data-slot=spinner]")!
+    await expect(spinner).toBeVisible()
+    await expect(reducedMotionAnimation(spinner)).toBe("none")
+    await expect(
+      await screen.findByRole(
+        "status",
+        { name: /^Recording/ },
+        { timeout: 3000 }
+      )
+    ).toBeVisible()
+  },
+}
+
+/** Held on a slow microphone and let go before it opened: a tap. */
+export const StartingLetGo: Story = {
+  tags: ["!autodocs"],
+  args: { startDelay: 800 },
+  play: async () => {
+    const mic = micOf()
+    const box = mic.getBoundingClientRect()
+    const x = box.left + box.width / 2
+    fireEvent.pointerDown(mic, { button: 0, pointerId: 7, clientX: x })
+    await waitFor(() => expect(mic).toHaveAttribute("aria-busy", "true"))
+    fireEvent.pointerUp(window, { pointerId: 7, clientX: x })
+    await expect(
+      await screen.findByRole("button", { name: "Done" }, { timeout: 3000 })
+    ).toHaveFocus()
   },
 }

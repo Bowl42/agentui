@@ -1766,6 +1766,14 @@ puts the words in the text at the caret, to edit before sending.
 - If `onFinish` rejects, the take is kept: the box says the words could
   not be made out, with Retry (`onFinish` again) and Cancel. Keep the
   audio until one of them.
+- Opening a microphone takes about half a second, and seconds the
+  first time in WebKit. While `onStart` is pending, a spinner takes the
+  mic's glyph's place (still with reduced motion), the mic busy and
+  described as starting (`labels.starting`); a hold let go meanwhile is
+  a tap. An app that keeps the microphone open between takes (after
+  one, on hover, always), so a press records at once, says so with
+  `ready`: the idle mic's glyph in the text's colour, a status mark's
+  dot at its corner, described as `labels.ready` ("Microphone ready").
 - However a take ends (Done, let go, sent, Cancel, Escape, at
   `maxDuration`, a failed one cancelled), the editor has the focus
   again, the caret after the words it put in or where it was, unless
