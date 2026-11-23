@@ -1,0 +1,17 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "code-readout",
+  "title": "Code Readout",
+  "description": "A short code read out to be typed elsewhere (a sign-in's one-time code, a device's pairing code): 32px on 40px lines (the theme's text-readout), monospaced, its characters in groups (`group`, 4 by default) apart by a margin, not spaces, so it is copied and selected whole; read out character by character to a screen reader, its `label` first. Beside it, a CopyButton with `showLabel`.",
+  "dependencies": [
+    "cn"
+  ],
+  "files": [
+    {
+      "path": "src/components/code-readout.tsx",
+      "content": "import * as React from \"react\"\nimport { cn } from \"cn\"\n\n/**\n * A short code read out to be typed elsewhere (a sign-in's one-time code,\n * a device's pairing code): large (`text-readout`, 32px on 40px lines),\n * monospaced, its characters in groups (`group`, 4 by default: \"ABCD\n * EFGH\") apart by a space's width that is not a space, so it is copied\n * and selected whole. Read out character by character to a screen\n * reader, its `label` first (\"Your code\").\n */\nfunction CodeReadout({\n  value,\n  group = 4,\n  label,\n  className,\n  ...props\n}: Omit<React.ComponentProps<\"div\">, \"children\"> & {\n  /** The code, as it is typed: \"ABCD1234\". */\n  value: string\n  /** Characters to a group; 0 for none. */\n  group?: number\n  /** What the code is, for a screen reader: \"Your code\". */\n  label?: string | undefined\n}) {\n  const groups =\n    group > 0 ? (value.match(new RegExp(`.{1,${group}}`, \"gu\")) ?? []) : [value]\n  const spoken = [...value].join(\" \")\n  return (\n    <div\n      role=\"img\"\n      aria-label={label ? `${label}: ${spoken}` : spoken}\n      data-slot=\"code-readout\"\n      className={cn(\n        \"font-mono text-readout font-medium tracking-wider whitespace-nowrap tabular-nums select-all\",\n        className\n      )}\n      {...props}\n    >\n      {groups.map((part, index) => (\n        // Inline, apart by a margin: copied as one word, no spaces or\n        // line breaks between its groups.\n        <span key={index} aria-hidden=\"true\" className=\"not-last:me-3\">\n          {part}\n        </span>\n      ))}\n    </div>\n  )\n}\n\nexport { CodeReadout }\n",
+      "type": "registry:component"
+    }
+  ],
+  "type": "registry:component"
+}
