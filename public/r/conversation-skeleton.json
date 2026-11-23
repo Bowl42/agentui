@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "conversation-skeleton",
+  "title": "Conversation Skeleton",
+  "description": "A conversation not here yet (ConversationSkeleton): a message asked, at the end edge in a bubble the user's message's size and corners, and the lines of an answer in the conversation's type (16px on lines of 28px); a status named by label (\"Loading conversation\"), seen only past a short wait (animate-wait-in) so a quick load never flashes it. SkeletonLines: lines of text not here yet, each a thin rounded bar on a line of the text's height, so the place is as tall as the text will be; widths one a line.",
+  "dependencies": [
+    "cn"
+  ],
+  "registryDependencies": [
+    "skeleton"
+  ],
+  "files": [
+    {
+      "path": "src/components/conversation-skeleton.tsx",
+      "content": "import * as React from \"react\"\nimport { cn } from \"cn\"\n\nimport { Skeleton } from \"@/components/ui/skeleton\"\n\n/**\n * Lines of text not here yet, each a thin rounded bar on a line of the\n * text's height (`h-lh`), so the place is as tall as the text will be.\n * `widths`, one a line, its last shortest as a paragraph's.\n */\nfunction SkeletonLines({\n  widths = [\"w-4/5\", \"w-3/5\", \"w-2/3\"],\n  className,\n  ...props\n}: React.ComponentProps<\"div\"> & {\n  /** Each line's width, a class: \"w-4/5\". */\n  widths?: readonly string[]\n}) {\n  return (\n    <div\n      data-slot=\"skeleton-lines\"\n      aria-hidden=\"true\"\n      className={cn(\"flex flex-col\", className)}\n      {...props}\n    >\n      {widths.map((width, index) => (\n        <div key={index} className=\"flex h-lh items-center\">\n          {/* grid: mark */}\n          <Skeleton className={cn(\"h-2.5 rounded-full\", width)} />\n        </div>\n      ))}\n    </div>\n  )\n}\n\n/**\n * A conversation not here yet: a message asked, at the end edge in a\n * bubble the user's size, and the lines of an answer, in the\n * conversation's type (16px on lines of 28px). Seen only past a short\n * wait (`animate-wait-in`), so a quick load never flashes it; a status,\n * named by `label` (\"Loading conversation\").\n */\nfunction ConversationSkeleton({\n  label = \"Loading conversation\",\n  className,\n  ...props\n}: React.ComponentProps<\"div\"> & {\n  /** Its name for screen readers. */\n  label?: string\n}) {\n  return (\n    <div\n      data-slot=\"conversation-skeleton\"\n      role=\"status\"\n      aria-label={label}\n      className={cn(\"flex animate-wait-in flex-col gap-6\", className)}\n      {...props}\n    >\n      {/* The user's bubble: a line of 28px and 8px each side, past its\n          transparent border (as the bubble's, for forced colours). */}\n      <Skeleton\n        aria-hidden=\"true\"\n        className=\"ms-auto box-content h-11 w-2/5 max-w-span-9 rounded-xl border border-transparent max-sm:rounded-2xl\"\n      />\n      <SkeletonLines className=\"text-base leading-7\" />\n    </div>\n  )\n}\n\nexport { ConversationSkeleton, SkeletonLines }\n",
+      "type": "registry:component"
+    }
+  ],
+  "type": "registry:component"
+}

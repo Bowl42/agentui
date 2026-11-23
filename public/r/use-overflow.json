@@ -1,0 +1,14 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "use-overflow",
+  "title": "Use Overflow",
+  "description": "Whether an element's content is taller or wider than it, kept as it and its content change: e.g. to make a scrolling region reachable by keyboard (tabIndex 0) only while it scrolls, as its arrow keys need it focused.",
+  "files": [
+    {
+      "path": "src/hooks/use-overflow.ts",
+      "content": "import * as React from \"react\"\n\n/**\n * Whether an element's content is taller or wider than it, kept as it and\n * its content change: e.g. to make a scrolling region reachable by\n * keyboard (`tabIndex={overflows ? 0 : undefined}`) only while it\n * scrolls, as its arrow keys and Page Down need it focused (WCAG 2.1.1).\n * Give the element the ref callback.\n */\nexport function useOverflow<T extends HTMLElement>(): [\n  (element: T | null) => void,\n  boolean,\n] {\n  const [overflows, setOverflows] = React.useState(false)\n  const ref = React.useCallback((element: T | null) => {\n    if (!element) return\n    const read = () =>\n      setOverflows(\n        element.scrollHeight > element.clientHeight + 1 ||\n          element.scrollWidth > element.clientWidth + 1\n      )\n    const resize = new ResizeObserver(read)\n    const watch = () => {\n      resize.disconnect()\n      resize.observe(element)\n      for (const child of element.children) resize.observe(child)\n      read()\n    }\n    const mutation = new MutationObserver(watch)\n    mutation.observe(element, { childList: true })\n    watch()\n    return () => {\n      resize.disconnect()\n      mutation.disconnect()\n    }\n  }, [])\n  return [ref, overflows]\n}\n",
+      "type": "registry:hook"
+    }
+  ],
+  "type": "registry:hook"
+}

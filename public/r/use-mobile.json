@@ -1,0 +1,14 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "use-mobile",
+  "title": "Use Mobile",
+  "description": "shadcn/ui's base-nova use-mobile, fixed: a phone is narrower than 640px, Tailwind's `sm`, not 768px (a foldable or a tablet has the desktop's layout); and it reads the media query with useSyncExternalStore instead of setting state in an effect.",
+  "files": [
+    {
+      "path": "src/hooks/use-mobile.ts",
+      "content": "import * as React from \"react\"\n\n// agentui: useSyncExternalStore, not setState in an effect\n// (react-hooks/set-state-in-effect). A phone is narrower than 640px,\n// Tailwind's `sm` (`max-sm:` in a component), not 768px: a foldable or a\n// tablet has the desktop's layout. Sizes for a finger follow\n// `pointer: coarse` instead.\n\nconst MOBILE_BREAKPOINT = 640\nconst query = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`\n\nfunction subscribe(onChange: () => void) {\n  const mql = window.matchMedia(query)\n  mql.addEventListener(\"change\", onChange)\n  return () => mql.removeEventListener(\"change\", onChange)\n}\n\nexport function useIsMobile() {\n  return React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false\n  )\n}\n",
+      "type": "registry:hook"
+    }
+  ],
+  "type": "registry:hook"
+}
