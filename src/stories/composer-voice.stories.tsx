@@ -88,6 +88,8 @@ function Demo({
   startError,
   startPending = false,
   queue = false,
+  shortcut,
+  name = "Message",
   failOnce = false,
   maxDuration,
   submitOnFinish,
@@ -112,6 +114,10 @@ function Demo({
   startPending?: boolean
   /** A tool after the mic with a tooltip, as a queue button. */
   queue?: boolean
+  /** The key that drives the mic from anywhere, by its code. */
+  shortcut?: string
+  /** The editor's name. */
+  name?: string
   /** Whether making out the words fails the first time. */
   failOnce?: boolean
   maxDuration?: number
@@ -139,7 +145,7 @@ function Demo({
           return true
         }}
       >
-        <ComposerEditor aria-label="Message" placeholder="Ask anything" />
+        <ComposerEditor aria-label={name} placeholder="Ask anything" />
         <ComposerToolbar>
           <ComposerVoice
             className="ms-auto"
@@ -151,6 +157,8 @@ function Demo({
             })}
             maxDuration={maxDuration}
             submitOnFinish={submitOnFinish}
+            shortcut={shortcut}
+            labels={shortcut ? { shortcut: "Hold Right ⌥ to talk" } : undefined}
             inputs={inputs}
             input={input}
             onInputChange={(id) => {
@@ -714,5 +722,174 @@ export const FocusBesideAToolSpace: Story = {
     await new Promise((resolve) => setTimeout(resolve, 800))
     await expect(tooltipOf()).toBeNull()
     await expect(editorOf()).toHaveFocus()
+  },
+}
+
+/** Whether the next `key` going down past the page was prevented. */
+function watchKey(code: string) {
+  const seen: boolean[] = []
+  const listener = (event: KeyboardEvent) => {
+    if (event.code === code) seen.push(event.defaultPrevented)
+  }
+  document.addEventListener("keydown", listener)
+  return {
+    seen,
+    stop: () => document.removeEventListener("keydown", listener),
+  }
+}
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * A `shortcut` key, held alone from anywhere (here, nothing focused): it
+ * records until let go, and with `submitOnFinish="hold"` sends; the key
+ * itself does nothing else. The mic says so: in its tooltip, and as
+ * `aria-keyshortcuts`.
+ */
+export const ShortcutHeld: Story = {
+  args: { shortcut: "AltRight", live: true, heard: 6, submitOnFinish: "hold" },
+  play: async ({ args }) => {
+    await expect(micOf()).toHaveAttribute("aria-keyshortcuts", "Alt")
+    await userEvent.hover(micOf())
+    await waitFor(() =>
+      expect(tooltipOf()).toHaveTextContent("Hold Right ⌥ to talk")
+    )
+    await userEvent.unhover(micOf())
+    await waitFor(() => expect(tooltipOf()).toBeNull())
+    ;(document.activeElement as HTMLElement | null)?.blur()
+
+    const user = userEvent.setup()
+    const key = watchKey("AltRight")
+    await user.keyboard("[AltRight>]")
+    key.stop()
+    await expect(key.seen).toEqual([true])
+    await expect(await screen.findByText("Slide to cancel")).toBeVisible()
+    await wait(400)
+    await user.keyboard("[/AltRight]")
+    await waitFor(() => expect(args.onSubmit).toHaveBeenCalled())
+  },
+}
+
+/**
+ * Tapped, it records until tapped again (or Done), the words then in the
+ * box, not sent by `submitOnFinish="hold"`.
+ */
+export const ShortcutTapped: Story = {
+  args: { shortcut: "AltRight", live: true, heard: 6, submitOnFinish: "hold" },
+  play: async ({ args }) => {
+    const user = userEvent.setup()
+    await user.keyboard("[AltRight]")
+    await expect(
+      await screen.findByRole("button", { name: "Done" })
+    ).toBeVisible()
+    await wait(300)
+    await user.keyboard("[AltRight]")
+    await waitFor(() =>
+      expect(editorOf()).toHaveTextContent(/^Rename the upload helper/)
+    )
+    await expect(args.onSubmit).not.toHaveBeenCalled()
+    await expect(editorOf()).toHaveFocus()
+  },
+}
+
+/**
+ * Another key with it, as an Option or AltGr character is typed: no take
+ * starts, the key goes through; one that had started is dropped.
+ */
+export const ShortcutWithAKey: Story = {
+  args: { shortcut: "AltRight", live: true, heard: 6 },
+  play: async ({ args }) => {
+    const user = userEvent.setup()
+    await user.click(editorOf())
+    const key = watchKey("KeyE")
+    await user.keyboard("[AltRight>][KeyE][/AltRight]")
+    await wait(300)
+    await expect(args.onStart).not.toHaveBeenCalled()
+    await expect(key.seen).toEqual([false])
+
+    // Held past its start, then another key: dropped.
+    await user.keyboard("[AltRight>]")
+    await waitFor(() => expect(args.onStart).toHaveBeenCalled())
+    await screen.findByText("Slide to cancel")
+    await user.keyboard("[KeyE]")
+    key.stop()
+    await expect(key.seen).toEqual([false, false])
+    await waitFor(() => expect(args.onCancel).toHaveBeenCalled())
+    await user.keyboard("[/AltRight]")
+    await wait(300)
+    await expect(
+      screen.queryByRole("status", { name: /^Recording/ })
+    ).toBeNull()
+  },
+}
+
+/** Escape while it is held cancels; letting go then does nothing. */
+export const ShortcutEscape: Story = {
+  tags: ["!autodocs"],
+  args: { shortcut: "AltRight", live: true, heard: 6 },
+  play: async ({ args }) => {
+    const user = userEvent.setup()
+    await user.keyboard("[AltRight>]")
+    await screen.findByText("Slide to cancel")
+    await user.keyboard("{Escape}")
+    await waitFor(() => expect(args.onCancel).toHaveBeenCalledOnce())
+    await user.keyboard("[/AltRight]")
+    await wait(300)
+    await expect(args.onStart).toHaveBeenCalledOnce()
+    await expect(args.onCancel).toHaveBeenCalledOnce()
+    await expect(editorOf()).toHaveTextContent("")
+  },
+}
+
+/**
+ * The window losing the focus while it is held (its key-up never
+ * comes): the take finishes, the words kept, not sent.
+ */
+export const ShortcutWindowBlur: Story = {
+  tags: ["!autodocs"],
+  args: { shortcut: "AltRight", live: true, heard: 6, submitOnFinish: "hold" },
+  play: async ({ args }) => {
+    const user = userEvent.setup()
+    await user.keyboard("[AltRight>]")
+    await screen.findByText("Slide to cancel")
+    await wait(400)
+    window.dispatchEvent(new FocusEvent("blur"))
+    await waitFor(() =>
+      expect(editorOf()).toHaveTextContent(/^Rename the upload helper/)
+    )
+    await expect(args.onSubmit).not.toHaveBeenCalled()
+    await user.keyboard("[/AltRight]")
+  },
+}
+
+const sideStart = fn()
+
+/**
+ * Two composers with the same key, a main one and a side panel's: the
+ * one with the focus answers it, then still the one that last had it.
+ */
+export const ShortcutTwoComposers: Story = {
+  tags: ["!autodocs"],
+  args: { shortcut: "AltRight", live: true, heard: 6 },
+  render: (args) => (
+    <div className="grid gap-4 md:grid-cols-2">
+      <Demo {...args} name="Main message" />
+      <Demo {...args} name="Side message" onStart={sideStart} />
+    </div>
+  ),
+  play: async ({ args }) => {
+    sideStart.mockClear()
+    const user = userEvent.setup()
+    const side = screen.getByRole("textbox", { name: "Side message" })
+    await user.click(side)
+    await user.keyboard("[AltRight]")
+    await waitFor(() => expect(sideStart).toHaveBeenCalledOnce())
+    await expect(args.onStart).not.toHaveBeenCalled()
+    await user.click(await screen.findByRole("button", { name: "Cancel" }))
+    // Nothing focused now: the side panel's, as it last had it.
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    await user.keyboard("[AltRight]")
+    await waitFor(() => expect(sideStart).toHaveBeenCalledTimes(2))
+    await expect(args.onStart).not.toHaveBeenCalled()
   },
 }

@@ -866,6 +866,11 @@ type ComposerVoiceLabels = {
   systemDefault: string
   /** An input given no name: "Microphone 2", by its place among them. */
   unnamedInput: (place: number) => string
+  /**
+   * The mic's tooltip with a `shortcut`: "Hold Right ⌥ to talk". Empty,
+   * no tooltip.
+   */
+  shortcut: string
 }
 
 /** An audio input the mic can record from, as the app lists them. */
@@ -6071,10 +6076,57 @@ const defaultVoiceLabels: ComposerVoiceLabels = {
   input: "Choose microphone",
   systemDefault: "System default",
   unnamedInput: (place) => `Microphone ${place}`,
+  shortcut: "",
 }
 
 /** Held this long or more, the mic records until let go; less, a tap. */
 const holdDelay = 300
+/**
+ * Held alone this long, a `shortcut` key starts a take: an Option or
+ * AltGr held for a character's key (Right ⌥ E, AltGr Q) never starts one.
+ */
+const keyDelay = 150
+
+/** A mounted mic's `shortcut`, and the composer it is in. */
+type VoiceShortcut = { box: () => Element | null }
+const voiceShortcuts: VoiceShortcut[] = []
+let lastVoiceShortcut: VoiceShortcut | null = null
+let watchingShortcutFocus = false
+
+/**
+ * The mic a `shortcut` drives, of several mounted (a main composer and a
+ * side panel's): the one whose composer has the focus, else the one
+ * that last had it, else the first mounted.
+ */
+function voiceShortcutOwner() {
+  const active = document.activeElement
+  return (
+    voiceShortcuts.find((entry) => entry.box()?.contains(active)) ??
+    (lastVoiceShortcut && voiceShortcuts.includes(lastVoiceShortcut)
+      ? lastVoiceShortcut
+      : voiceShortcuts[0])
+  )
+}
+
+function watchShortcutFocus() {
+  if (watchingShortcutFocus) return
+  watchingShortcutFocus = true
+  document.addEventListener("focusin", (event) => {
+    const into = voiceShortcuts.find((entry) =>
+      entry.box()?.contains(event.target as Node)
+    )
+    if (into) lastVoiceShortcut = into
+  })
+}
+
+/** A `KeyboardEvent.code` as `aria-keyshortcuts` names it. */
+function ariaKey(code: string) {
+  const modifier = /^(Alt|Control|Meta|Shift)(Left|Right)$/.exec(code)
+  if (modifier) return modifier[1]!
+  const key = /^(?:Key|Digit)(.)$/.exec(code)
+  return key ? key[1]! : code
+}
+
 /** How far a held mic slides back, in px, to cancel when let go. */
 const slideToCancel = 80
 /** The seconds left of `maxDuration` that the time counts down. */
@@ -6130,6 +6182,19 @@ function liveText(input: VoiceInput) {
  * shows it (`input`) and tells of a new one (`onInputChange`). It is not
  * offered while recording, as the tools are not, nor while a recording
  * starts.
+ *
+ * Given a `shortcut` (a `KeyboardEvent.code`, e.g. `"AltRight"`), that
+ * key drives it from anywhere in the window, pressed alone: held, it
+ * records until let go (sent by `submitOnFinish` as a held mic is;
+ * Escape cancels); tapped, it records until tapped again (or Done), not
+ * sent by `"hold"`. A take starts once the key has been held alone for
+ * 150ms; another key before that (an Option or AltGr character) starts
+ * none, and during a take cancels it, the key going through either way.
+ * The key itself does nothing else (a lone Alt opens no menu); repeats
+ * are ignored. The window losing the focus while it is held finishes
+ * the take, the words kept, not sent. Of several mics with one, the one
+ * whose composer has the focus answers it, else the one that last had
+ * it, else the first mounted. `labels.shortcut` says so in its tooltip.
  */
 function ComposerVoice({
   onStart,
@@ -6145,6 +6210,7 @@ function ComposerVoice({
   input,
   onInputChange,
   onInputsOpen,
+  shortcut,
   labels,
   className,
   onClick,
@@ -6196,6 +6262,11 @@ function ComposerVoice({
   onInputChange?: (id: string) => void
   /** The inputs about to show: the app can list them again. */
   onInputsOpen?: () => void
+  /**
+   * A key that drives it from anywhere in the window, pressed alone, by
+   * its `KeyboardEvent.code`: `"AltRight"`, `"F13"`. None, no key.
+   */
+  shortcut?: string
   labels?: Partial<ComposerVoiceLabels>
 }) {
   const composer = useComposer()
@@ -6299,13 +6370,19 @@ function ComposerVoice({
     return () => clearTimeout(timer)
   }, [session, maxDuration, duration, actions])
 
-  const start = (held: boolean) => {
+  const start = (held: boolean, press?: { aborted: boolean }) => {
     setVoiceError(null)
     setStarting(true)
     Promise.resolve(onStart())
       .finally(() => setStarting(false))
       .then(
-        () =>
+        () => {
+          // A shortcut's press given up as it started: stopped again.
+          if (press?.aborted) {
+            hold.current = null
+            latest.current.onCancel?.()
+            return
+          }
           commit({
             startedAt: performance.now(),
             transcribing: false,
@@ -6314,7 +6391,8 @@ function ComposerVoice({
             held: held && hold.current !== null,
             cancelling: false,
             limit: maxDuration,
-          }),
+          })
+        },
         (error: unknown) => {
           hold.current = null
           setVoiceError({
@@ -6347,10 +6425,131 @@ function ComposerVoice({
   }
 
   const disabled = composer.disabled || props.disabled
-  const mic = (
+  const keyRef = React.useRef({ start, release, disabled })
+  React.useLayoutEffect(() => {
+    keyRef.current = { start, release, disabled }
+  })
+
+  // The `shortcut` key, from anywhere in the window.
+  React.useEffect(() => {
+    if (!shortcut) return
+    const entry: VoiceShortcut = {
+      box: () =>
+        editor.getRootElement()?.closest("[data-slot=composer]") ?? null,
+    }
+    voiceShortcuts.push(entry)
+    watchShortcutFocus()
+    // The press under way: when it went down, whether a take was under
+    // way then (this press ends it), and whether this one started one.
+    let down: {
+      at: number
+      ending: boolean
+      started: boolean
+      aborted: boolean
+      timer: ReturnType<typeof setTimeout> | undefined
+    } | null = null
+    const giveUp = () => {
+      if (!down) return
+      clearTimeout(down.timer)
+      down.aborted = true
+      const started = down.started
+      down = null
+      if (!started) return
+      hold.current = null
+      // Under way: dropped (a start still pending stops as it comes).
+      if (sessionRef.current) actions.cancel()
+    }
+    // Another modifier with it: not alone.
+    const withOthers = (event: KeyboardEvent) =>
+      (event.ctrlKey && !shortcut.startsWith("Control")) ||
+      (event.metaKey && !shortcut.startsWith("Meta")) ||
+      (event.shiftKey && !shortcut.startsWith("Shift")) ||
+      (event.altKey && !shortcut.startsWith("Alt"))
+    const keyDown = (event: KeyboardEvent) => {
+      if (event.code !== shortcut) {
+        // Another key while it is held: the take is given up, the key
+        // goes through. Escape while held cancels as it does (VoiceControls).
+        if (down && event.key !== "Escape") giveUp()
+        else if (down) {
+          clearTimeout(down.timer)
+          down = null
+        }
+        return
+      }
+      if (event.isComposing) return
+      if (event.repeat || down) {
+        if (down) event.preventDefault()
+        return
+      }
+      const session = sessionRef.current
+      if (keyRef.current.disabled || withOthers(event)) return
+      if (!session && voiceShortcutOwner() !== entry) return
+      // Not a menu's, nor anything else's.
+      event.preventDefault()
+      const press = {
+        at: performance.now(),
+        ending: session !== null,
+        started: false,
+        aborted: false,
+        timer: undefined as ReturnType<typeof setTimeout> | undefined,
+      }
+      down = press
+      if (press.ending) return
+      press.timer = setTimeout(() => {
+        if (down !== press) return
+        press.started = true
+        hold.current = { at: press.at, x: 0, rtl: false }
+        keyRef.current.start(true, press)
+      }, keyDelay)
+    }
+    const keyUp = (event: KeyboardEvent) => {
+      if (event.code !== shortcut || !down) return
+      event.preventDefault()
+      const press = down
+      clearTimeout(press.timer)
+      down = null
+      const session = sessionRef.current
+      // Tapped again: done, as a tapped take is (not sent by "hold").
+      if (press.ending) {
+        if (session) {
+          if (session.held) update({ held: false, cancelling: false })
+          actions.finish()
+        }
+        return
+      }
+      // Let go before it started: a tap, recording until tapped again.
+      if (!press.started) return keyRef.current.start(false)
+      keyRef.current.release()
+    }
+    // The window left while held: finished, the words kept, not sent.
+    const blur = () => {
+      if (!down) return
+      const press = down
+      if (!press.started || !sessionRef.current) return giveUp()
+      clearTimeout(press.timer)
+      down = null
+      hold.current = null
+      update({ held: false, cancelling: false })
+      actions.finish()
+    }
+    window.addEventListener("keydown", keyDown, true)
+    window.addEventListener("keyup", keyUp, true)
+    window.addEventListener("blur", blur)
+    return () => {
+      giveUp()
+      window.removeEventListener("keydown", keyDown, true)
+      window.removeEventListener("keyup", keyUp, true)
+      window.removeEventListener("blur", blur)
+      voiceShortcuts.splice(voiceShortcuts.indexOf(entry), 1)
+      if (lastVoiceShortcut === entry) lastVoiceShortcut = null
+    }
+  }, [shortcut, editor, actions, update])
+
+  const button = (
     <ComposerButton
       data-slot="composer-voice"
       aria-label={all.record}
+      aria-keyshortcuts={shortcut ? ariaKey(shortcut) : undefined}
       disabled={disabled}
       onPointerDown={(event) => {
         onPointerDown?.(event)
@@ -6413,6 +6612,16 @@ function ComposerVoice({
       <HugeiconsIcon icon={Mic01Icon} strokeWidth={2} />
     </ComposerButton>
   )
+  // Its shortcut, said in a tooltip.
+  const mic =
+    shortcut && all.shortcut ? (
+      <Tooltip>
+        <TooltipTrigger render={button} />
+        <TooltipContent>{all.shortcut}</TooltipContent>
+      </Tooltip>
+    ) : (
+      button
+    )
   if (!inputs?.length) return mic
 
   const chosen =

@@ -1770,8 +1770,31 @@ puts the words in the text at the caret, to edit before sending.
   `maxDuration`, a failed one cancelled), the editor has the focus
   again, the caret after the words it put in or where it was, unless
   the reader went elsewhere meanwhile.
-- A global shortcut to dictate from anywhere (a held key) is the app's;
-  it can `click()` the mic, or focus it and let Space be held.
+- `shortcut` gives it a key that drives it from anywhere in the window,
+  by its `KeyboardEvent.code`, pressed alone; `labels.shortcut` says so
+  in the mic's tooltip, and the mic has it as `aria-keyshortcuts`:
+
+  ```tsx
+  <ComposerVoice
+    shortcut="AltRight" // the right Option or Alt key alone
+    labels={{ shortcut: "Hold Right ⌥ to talk" }}
+    submitOnFinish="hold"
+    …
+  />
+  ```
+
+  Held, it records until let go, sent by `submitOnFinish` as a held mic
+  is; Escape cancels. Tapped (let go within 300ms), it records until
+  tapped again or Done, not sent by `"hold"`. A take starts once the key
+  has been held alone for 150ms (its first 150ms of speech are not
+  recorded): another key before that, as an Option or AltGr character
+  is typed, starts none, and during a take cancels it, that key going
+  through either way. The key does nothing else (a lone Alt opens no
+  menu); repeats are ignored. If the window loses the focus while it is
+  held (its key-up never comes), the take finishes, the words kept, not
+  sent. With several composers mounted (a main one and a side panel's)
+  each with the key, the one with the focus answers it, else the one
+  that last had it, else the first mounted.
 - To choose what it records from (a reader whose default input is
   silent or virtual, a loopback driver, a headset unplugged), give it
   `inputs`: a chevron beside the mic, a split button, opens them, the
