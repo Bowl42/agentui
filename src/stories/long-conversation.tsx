@@ -195,7 +195,7 @@ async function screenshots(count: number) {
 /**
  * Counts layout reads, those in animation frames (before the frame's
  * layout, where a row just mounted makes one forced) apart, and the
- * scroller's own scrollTop writes.
+ * scroller's own scrolls (a scrollTop written, a scrollBy).
  */
 function instrument(viewport: HTMLElement) {
   const counts = { rects: 0, inFrames: 0, writes: 0 }
@@ -231,6 +231,15 @@ function instrument(viewport: HTMLElement) {
       descriptor.set!.call(this, value)
     },
   })
+  // The place kept by scrollBy too.
+  const scrollBy = Element.prototype.scrollBy
+  Object.defineProperty(viewport, "scrollBy", {
+    configurable: true,
+    value(this: Element, ...args: unknown[]) {
+      if (!ours) counts.writes += 1
+      ;(scrollBy as (...args: unknown[]) => void).apply(this, args)
+    },
+  })
   return {
     counts,
     /** The reader's scroll: not the scroller's. */
@@ -246,6 +255,7 @@ function instrument(viewport: HTMLElement) {
       Element.prototype.getBoundingClientRect = rect
       window.requestAnimationFrame = request
       delete (viewport as { scrollTop?: number }).scrollTop
+      delete (viewport as { scrollBy?: unknown }).scrollBy
     },
   }
 }

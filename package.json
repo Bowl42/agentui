@@ -22,7 +22,7 @@
     "typecheck:tsc": "tsc -b",
     "typecheck:ts5": "node node_modules/typescript-5/bin/tsc -p tsconfig.strict.json --noEmit --lib ES2023,DOM,DOM.Iterable",
     "test": "vitest run",
-    "test:chromium": "vitest run --project unit --project forced-colors --project 'storybook (chromium)'",
+    "test:chromium": "vitest run --project unit --project forced-colors --project 'storybook (chromium)' --project 'input (chromium)'",
     "storybook:build": "storybook build",
     "check:quick": "node scripts/check.ts quick",
     "check": "node scripts/check.ts",

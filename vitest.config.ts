@@ -53,6 +53,23 @@ export default mergeConfig(
           },
         },
         {
+          // What needs the browser's own input (a real wheel, which
+          // WebKit scrolls on a thread of its own), in Chromium and
+          // WebKit.
+          extends: true,
+          test: {
+            name: "input",
+            include: ["src/**/*.input.test.tsx"],
+            browser: {
+              enabled: true,
+              headless: true,
+              viewport: { width: 1280, height: 800 },
+              provider: playwright(),
+              instances: [{ browser: "chromium" }, { browser: "webkit" }],
+            },
+          },
+        },
+        {
           // Every story is a browser test: it renders, runs its play function
           // and fails on accessibility violations.
           extends: true,

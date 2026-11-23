@@ -5,6 +5,7 @@ import { coarseHitSize } from "@/stories/touch"
 import { reducedMotionTransition } from "@/stories/motion"
 import { settled } from "@/stories/wait"
 import { LongConversation, instrument } from "@/stories/long-conversation"
+import { PrependWhileScrolling } from "@/stories/prepend-while-scrolling"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Shield01Icon } from "@hugeicons/core-free-icons"
 
@@ -1922,5 +1923,39 @@ export const Highlight: Story = {
     await waitFor(() => expect(item).not.toHaveAttribute("data-highlighted"), {
       timeout: 3000,
     })
+  },
+}
+
+/**
+ * Earlier messages arriving among the reader's wheel steps up (asked for
+ * by the first, they come a moment later): what the reader looks at
+ * moves by the steps, every one, as the place is kept over the messages
+ * put above it. (Real wheel steps, which WebKit scrolls on a thread of
+ * its own: src/test/prepend-while-wheeling.input.test.tsx.)
+ */
+export const PrependWhileWheeling: Story = {
+  render: () => <PrependWhileScrolling />,
+  play: async ({ canvas }) => {
+    const viewport = canvas.getByRole("region", { name: "Conversation" })
+    await still(viewport)
+    const box = viewport.getBoundingClientRect()
+    const anchor = document
+      .elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)!
+      .closest<HTMLElement>("[data-message-id]")!
+    const before = anchor.getBoundingClientRect().top
+    for (let step = 0; step < 3; step++) {
+      viewport.dispatchEvent(
+        new WheelEvent("wheel", { bubbles: true, deltaY: -100 })
+      )
+      viewport.scrollTop -= 100
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    }
+    await waitFor(() =>
+      expect(viewport.querySelectorAll("[data-message-id]").length).toBe(73)
+    )
+    await still(viewport)
+    await expect(Math.round(anchor.getBoundingClientRect().top - before)).toBe(
+      300
+    )
   },
 }

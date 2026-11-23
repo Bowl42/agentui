@@ -699,6 +699,15 @@ function isRendered(row: HTMLElement) {
   )
 }
 
+// agentui: the place kept by a scroll relative to where the viewport
+// is when it is applied, not to a position read before: in WebKit a
+// wheel's scroll still under way on its scrolling thread was not yet in
+// scrollTop, and a write of scrollTop (made from it, and stopping that
+// scroll) lost the reader's step.
+function scrollViewportBy(viewport: HTMLElement, by: number) {
+  viewport.scrollBy({ top: by, behavior: "instant" })
+}
+
 // agentui: found by halving, not by reading every row from the top: rows
 // are in order down the content, so a few rects are read, not as many as
 // rows above the view (each a forced layout while layout is dirty).
@@ -1681,7 +1690,7 @@ function useMessageScrollerController({
       return false
     }
 
-    viewport.scrollTop += delta
+    scrollViewportBy(viewport, delta)
     anchor.offset = offset
     scheduleStateCommit()
     scheduleVisibilitySync()
@@ -1784,7 +1793,7 @@ function useMessageScrollerController({
       moved = getElementContentOffset(place.element, content) - place.offset
 
       if (Math.abs(moved) > SCROLL_POSITION_EPSILON) {
-        viewport.scrollTop += moved
+        scrollViewportBy(viewport, moved)
       } else {
         moved = 0
       }
@@ -1855,7 +1864,7 @@ function useMessageScrollerController({
       }
 
       if (Math.abs(moved) > SCROLL_POSITION_EPSILON) {
-        viewport.scrollTop += moved
+        scrollViewportBy(viewport, moved)
       }
 
       // Noted again on what it shows now (still no layout to force).
