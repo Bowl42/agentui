@@ -1768,6 +1768,41 @@ puts the words in the text at the caret, to edit before sending.
   audio until one of them.
 - A global shortcut to dictate from anywhere (a held key) is the app's;
   it can `click()` the mic, or focus it and let Space be held.
+- To choose what it records from (a reader whose default input is
+  silent or virtual, a loopback driver, a headset unplugged), give it
+  `inputs`: a chevron beside the mic, a split button, opens them, the
+  system default first ("System default"), a sheet on a phone. Tap,
+  hold and Space stay the mic's; the chevron is its own target (Enter,
+  Space or ArrowDown open it). It goes with the tools while recording
+  and is disabled while a recording starts. The app owns the devices:
+
+  ```tsx
+  const [inputs, setInputs] = useState<ComposerVoiceInput[]>([])
+  const list = () =>
+    navigator.mediaDevices.enumerateDevices().then((devices) =>
+      setInputs(
+        devices
+          .filter((d) => d.kind === "audioinput" && d.deviceId && d.deviceId !== "default")
+          .map((d, i) => ({ id: d.deviceId, label: d.label || `Microphone ${i + 1}` }))
+      )
+    )
+  // list() on mount and on navigator.mediaDevices' "devicechange"
+
+  <ComposerVoice
+    inputs={inputs} // none: the mic alone
+    input={input} // "" or none: the system default
+    onInputChange={setInput} // keep it, and record from it:
+    onInputsOpen={list} // names come once the mic was allowed
+    onStart={() =>
+      recorder.start({ audio: input ? { deviceId: { exact: input } } : true })
+    }
+  />
+  ```
+
+  An `input` no longer among `inputs` shows as the system default; an
+  input with no name is named by its place ("Microphone 2",
+  `labels.unnamedInput`). Its words are `labels.input` and
+  `labels.systemDefault`.
 
 #### A sent message
 

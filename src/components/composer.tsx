@@ -62,6 +62,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Alert02Icon,
+  ArrowDown01Icon,
   ArrowExpand01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
@@ -111,6 +112,7 @@ import {
 import { Chip, ChipDetail } from "@/components/chip"
 import { LongText, type LongTextLabels } from "@/components/long-text"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { ButtonGroup } from "@/components/ui/button-group"
 import {
   InputGroup,
   InputGroupButton,
@@ -120,6 +122,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -856,6 +860,20 @@ type ComposerVoiceLabels = {
   unavailable: string
   /** Closes why it would not start. */
   dismiss: string
+  /** The button beside the mic that opens the inputs to record from. */
+  input: string
+  /** The input the system records from, first of them. */
+  systemDefault: string
+  /** An input given no name: "Microphone 2", by its place among them. */
+  unnamedInput: (place: number) => string
+}
+
+/** An audio input the mic can record from, as the app lists them. */
+type ComposerVoiceInput = {
+  /** Its id, e.g. a `MediaDeviceInfo`'s `deviceId`; not empty. */
+  id: string
+  /** Its name, e.g. the device's `label`. */
+  label: string
 }
 
 /** Text that looks like a secret, as the app's `detectSecret` finds it. */
@@ -6000,6 +6018,9 @@ const defaultVoiceLabels: ComposerVoiceLabels = {
   noMicrophone: "No microphone found",
   unavailable: "Couldn't start the microphone",
   dismiss: "Dismiss",
+  input: "Choose microphone",
+  systemDefault: "System default",
+  unnamedInput: (place) => `Microphone ${place}`,
 }
 
 /** Held this long or more, the mic records until let go; less, a tap. */
@@ -6049,6 +6070,16 @@ function liveText(input: VoiceInput) {
  * If it will not start, a line under the box says why: `onStart`'s
  * rejection, by the browser's `getUserMedia` error names (access off, no
  * microphone). If `onFinish` fails, the recording stays, with a Retry.
+ *
+ * Given `inputs`, a button beside the mic (a split button's chevron:
+ * tapped, pressed or Enter, Space or ArrowDown from the keyboard, as
+ * the mic's own press and hold record) opens a choice of what to record
+ * from, the system default first, a sheet on a phone. The app lists the
+ * inputs (`enumerateDevices`, again on `devicechange` and on
+ * `onInputsOpen`), keeps the choice and records from it; the mic only
+ * shows it (`input`) and tells of a new one (`onInputChange`). It is not
+ * offered while recording, as the tools are not, nor while a recording
+ * starts.
  */
 function ComposerVoice({
   onStart,
@@ -6060,6 +6091,10 @@ function ComposerVoice({
   interim,
   maxDuration,
   submitOnFinish = false,
+  inputs,
+  input,
+  onInputChange,
+  onInputsOpen,
   labels,
   className,
   onClick,
@@ -6096,12 +6131,31 @@ function ComposerVoice({
   maxDuration?: number
   /** Sends the words once made out: always, or only when held. */
   submitOnFinish?: boolean | "hold"
+  /**
+   * The inputs it can record from besides the system default: with any,
+   * a button beside the mic chooses among them. With `inputs`,
+   * `className` goes on the group of the two, as it places the tool.
+   */
+  inputs?: readonly ComposerVoiceInput[]
+  /**
+   * The id of the input it records from; `""` or none, the system
+   * default, as is one no longer among `inputs` (unplugged).
+   */
+  input?: string
+  /** Another input chosen: its id, `""` for the system default. */
+  onInputChange?: (id: string) => void
+  /** The inputs about to show: the app can list them again. */
+  onInputsOpen?: () => void
   labels?: Partial<ComposerVoiceLabels>
 }) {
   const composer = useComposer()
   const [editor] = useLexicalComposerContext()
   const all = { ...defaultVoiceLabels, ...labels }
   const [session, setSession] = React.useState<VoiceState | null>(null)
+  // Asked to start, not started or refused yet (the browser may ask for
+  // the microphone meanwhile).
+  const [starting, setStarting] = React.useState(false)
+  const group = React.useRef<HTMLDivElement>(null)
   const sessionRef = React.useRef(session)
   // A pointer or Space holding the mic down: where and when it started.
   const hold = React.useRef<{ at: number; x: number; rtl: boolean } | null>(
@@ -6197,25 +6251,28 @@ function ComposerVoice({
 
   const start = (held: boolean) => {
     setVoiceError(null)
-    Promise.resolve(onStart()).then(
-      () =>
-        commit({
-          startedAt: performance.now(),
-          transcribing: false,
-          failed: false,
-          // Let go while it was starting: a tap.
-          held: held && hold.current !== null,
-          cancelling: false,
-          limit: maxDuration,
-        }),
-      (error: unknown) => {
-        hold.current = null
-        setVoiceError({
-          message: voiceErrorOf(error, latest.current.all),
-          dismiss: latest.current.all.dismiss,
-        })
-      }
-    )
+    setStarting(true)
+    Promise.resolve(onStart())
+      .finally(() => setStarting(false))
+      .then(
+        () =>
+          commit({
+            startedAt: performance.now(),
+            transcribing: false,
+            failed: false,
+            // Let go while it was starting: a tap.
+            held: held && hold.current !== null,
+            cancelling: false,
+            limit: maxDuration,
+          }),
+        (error: unknown) => {
+          hold.current = null
+          setVoiceError({
+            message: voiceErrorOf(error, latest.current.all),
+            dismiss: latest.current.all.dismiss,
+          })
+        }
+      )
   }
 
   // Let go: a tap records on, a hold finishes, or cancels slid back.
@@ -6239,11 +6296,12 @@ function ComposerVoice({
     start(true)
   }
 
-  return (
+  const disabled = composer.disabled || props.disabled
+  const mic = (
     <ComposerButton
       data-slot="composer-voice"
       aria-label={all.record}
-      disabled={composer.disabled || props.disabled}
+      disabled={disabled}
       onPointerDown={(event) => {
         onPointerDown?.(event)
         if (event.defaultPrevented || event.button !== 0 || hold.current) return
@@ -6299,11 +6357,82 @@ function ComposerVoice({
           start(false)
       }}
       onContextMenu={(event) => event.preventDefault()}
-      className={cn("touch-none select-none", className)}
+      className={cn("touch-none select-none", !inputs?.length && className)}
       {...props}
     >
       <HugeiconsIcon icon={Mic01Icon} strokeWidth={2} />
     </ComposerButton>
+  )
+  if (!inputs?.length) return mic
+
+  const chosen =
+    input && inputs.some((choice) => choice.id === input) ? input : ""
+  return (
+    <ButtonGroup
+      ref={group}
+      data-slot="composer-voice-group"
+      className={cn(
+        "rounded-lg has-aria-expanded:bg-muted has-aria-expanded:text-foreground dark:has-aria-expanded:bg-muted/50",
+        className
+      )}
+    >
+      {mic}
+      <DropdownMenu
+        onOpenChange={(open) => {
+          if (open) onInputsOpen?.()
+        }}
+      >
+        <DropdownMenuTrigger
+          render={
+            <ComposerButton
+              data-slot="composer-voice-input"
+              aria-label={all.input}
+              disabled={disabled || starting}
+              // A split button's chevron: 24px wide, a target's least
+              // beside another (WCAG 2.5.8), as tall as the mic. Under a
+              // finger it reaches past its end, not over the mic.
+              className="w-6 aria-expanded:bg-transparent max-sm:w-6 pointer-coarse:after:start-0"
+            />
+          }
+        >
+          {/* 12px, as a split button's chevron: smaller than the mic. */}
+          <HugeiconsIcon
+            icon={ArrowDown01Icon}
+            strokeWidth={2}
+            className="size-3"
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          side="top"
+          align="end"
+          anchor={group}
+          sheetTitle={all.input}
+          // 288px: a device's long name goes on to a second line.
+          className="w-72"
+        >
+          <DropdownMenuRadioGroup
+            aria-label={all.input}
+            value={chosen}
+            onValueChange={(id) => {
+              if (id !== chosen) onInputChange?.(String(id))
+            }}
+          >
+            <DropdownMenuRadioItem value="" closeOnClick>
+              {all.systemDefault}
+            </DropdownMenuRadioItem>
+            {inputs.map((choice, index) => (
+              <DropdownMenuRadioItem
+                key={choice.id}
+                value={choice.id}
+                closeOnClick
+              >
+                {choice.label.trim() || all.unnamedInput(index + 1)}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </ButtonGroup>
   )
 }
 
@@ -6863,5 +6992,6 @@ export {
   type ComposerSuggestion,
   type ComposerTakeoverLabels,
   type ComposerValue,
+  type ComposerVoiceInput,
   type ComposerVoiceLabels,
 }

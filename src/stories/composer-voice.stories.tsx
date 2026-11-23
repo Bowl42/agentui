@@ -7,6 +7,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from "storybook/test"
 
 import {
@@ -16,8 +17,10 @@ import {
   ComposerToolbar,
   ComposerVoice,
   type ComposerValue,
+  type ComposerVoiceInput,
 } from "@/components/composer"
 import { onAPhone } from "@/stories/phone"
+import { coarseHitSize } from "@/stories/touch"
 
 /** What the made-up speaker says, a word at a time. */
 const spoken =
@@ -75,12 +78,17 @@ function Demo({
   duration = 0,
   tick = 200,
   startError,
+  startPending = false,
   failOnce = false,
   maxDuration,
   submitOnFinish,
+  inputs,
+  defaultInput = "",
   onSubmit,
   onStart,
   onCancel,
+  onInputChange,
+  onInputsOpen,
 }: {
   /** Whether the app makes out words as they are said. */
   live?: boolean
@@ -91,15 +99,24 @@ function Demo({
   tick?: number
   /** The `getUserMedia` error name a start fails with. */
   startError?: string
+  /** Whether a start is never answered, as a prompt left open. */
+  startPending?: boolean
   /** Whether making out the words fails the first time. */
   failOnce?: boolean
   maxDuration?: number
   submitOnFinish?: boolean | "hold"
+  /** The inputs the app found to record from. */
+  inputs?: ComposerVoiceInput[]
+  /** The one chosen before, kept by the app. */
+  defaultInput?: string
   onSubmit?: (value: ComposerValue) => void
   onStart?: () => void
   onCancel?: () => void
+  onInputChange?: (id: string) => void
+  onInputsOpen?: () => void
 }) {
   const recorder = useRecorder(tick, heard, duration)
+  const [input, setInput] = React.useState(defaultInput)
   const failed = React.useRef(false)
   const words = recorder.state?.heard ?? 0
   const settled = Math.max(0, words - unsettled)
@@ -123,10 +140,18 @@ function Demo({
             })}
             maxDuration={maxDuration}
             submitOnFinish={submitOnFinish}
+            inputs={inputs}
+            input={input}
+            onInputChange={(id) => {
+              onInputChange?.(id)
+              setInput(id)
+            }}
+            onInputsOpen={onInputsOpen}
             onStart={() => {
               onStart?.()
               if (startError)
                 return Promise.reject(new DOMException("", startError))
+              if (startPending) return new Promise<void>(() => {})
               recorder.start()
             }}
             onCancel={() => {
@@ -153,7 +178,13 @@ function Demo({
 const meta = {
   title: "Components/Composer Voice",
   component: Demo,
-  args: { onSubmit: fn(), onStart: fn(), onCancel: fn() },
+  args: {
+    onSubmit: fn(),
+    onStart: fn(),
+    onCancel: fn(),
+    onInputChange: fn(),
+    onInputsOpen: fn(),
+  },
   parameters: { layout: "fullscreen" },
 } satisfies Meta<typeof Demo>
 
@@ -185,6 +216,10 @@ async function letGo(x: number, held: number) {
  */
 export const Tapped: Story = {
   play: async () => {
+    // No inputs given: the mic alone, as before.
+    await expect(
+      screen.queryByRole("button", { name: "Choose microphone" })
+    ).toBeNull()
     await userEvent.click(micOf())
     await expect(
       await screen.findByRole("status", { name: /^Recording 0:0/ })
@@ -375,5 +410,169 @@ export const TranscriptionFailed: Story = {
     await waitFor(() =>
       expect(editorOf()).toHaveTextContent("Rename the upload helper")
     )
+  },
+}
+
+/** Inputs as an app finds them, made up: one virtual, one silent. */
+const inputs: ComposerVoiceInput[] = [
+  { id: "built-in", label: "Built-in microphone" },
+  { id: "usb-headset", label: "USB headset" },
+  { id: "loopback", label: "Loopback audio (virtual device for recording)" },
+]
+
+const chooserOf = () =>
+  screen.getByRole("button", { name: "Choose microphone" })
+
+/**
+ * Given inputs, a chevron beside the mic chooses what it records from:
+ * the system default first and checked, the app told as it opens (to
+ * list them again) and of the one chosen. The mic still records as
+ * tapped, and the chevron goes with the tools while it does.
+ */
+export const Inputs: Story = {
+  args: { inputs },
+  play: async ({ args }) => {
+    const chooser = chooserOf()
+    // Beside the mic, as tall, 24px wide.
+    const mic = micOf().getBoundingClientRect()
+    const box = chooser.getBoundingClientRect()
+    await expect(box.width).toBe(24)
+    await expect(box.height).toBe(mic.height)
+    await expect(Math.abs(box.left - mic.right)).toBeLessThanOrEqual(1)
+
+    await userEvent.click(chooser)
+    const group = await screen.findByRole("group", {
+      name: "Choose microphone",
+    })
+    await expect(args.onInputsOpen).toHaveBeenCalledOnce()
+    const items = within(group).getAllByRole("menuitemradio")
+    await expect(items.map((item) => item.textContent)).toEqual([
+      "System default",
+      ...inputs.map((input) => input.label),
+    ])
+    await expect(items[0]).toHaveAttribute("aria-checked", "true")
+    await userEvent.click(
+      screen.getByRole("menuitemradio", { name: "USB headset" })
+    )
+    await expect(args.onInputChange).toHaveBeenCalledWith("usb-headset")
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
+
+    await userEvent.click(chooser)
+    await expect(
+      await screen.findByRole("menuitemradio", { name: "USB headset" })
+    ).toHaveAttribute("aria-checked", "true")
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
+
+    // The mic records as before; while it does, no choice.
+    await userEvent.click(micOf())
+    await screen.findByRole("button", { name: "Done" })
+    await expect(chooser).not.toBeVisible()
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }))
+    await waitFor(() => expect(chooserOf()).toBeVisible())
+  },
+}
+
+/**
+ * From the keyboard: Tab from the mic to the chevron, Enter opens the
+ * inputs at the chosen one, the arrows and Enter choose another, the
+ * focus back on the chevron. Space on the mic still records.
+ */
+export const InputsKeyboard: Story = {
+  args: { inputs, defaultInput: "built-in" },
+  play: async ({ args }) => {
+    micOf().focus()
+    await userEvent.tab()
+    await expect(chooserOf()).toHaveFocus()
+    await userEvent.keyboard("{Enter}")
+    const chosen = await screen.findByRole("menuitemradio", {
+      name: "Built-in microphone",
+    })
+    await expect(chosen).toHaveAttribute("aria-checked", "true")
+    await waitFor(() =>
+      expect(screen.getAllByRole("menuitemradio")).toContain(
+        document.activeElement
+      )
+    )
+    // To the last, the virtual one.
+    await userEvent.keyboard("{End}{Enter}")
+    await expect(args.onInputChange).toHaveBeenCalledWith("loopback")
+    await waitFor(() => expect(chooserOf()).toHaveFocus())
+    await userEvent.keyboard("{ArrowDown}")
+    await expect(
+      await screen.findByRole("menuitemradio", { name: /^Loopback audio/ })
+    ).toHaveAttribute("aria-checked", "true")
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(chooserOf()).toHaveFocus())
+  },
+}
+
+/**
+ * On a phone: the chevron is as tall as the mic's 40px, and under a
+ * finger reaches past its end and above and below it, never over the
+ * mic; the inputs open as a sheet, titled.
+ */
+export const InputsOnAPhone: Story = {
+  ...onAPhone,
+  args: { inputs },
+  play: async ({ args }) => {
+    const chooser = chooserOf()
+    const mic = micOf().getBoundingClientRect()
+    const box = chooser.getBoundingClientRect()
+    await expect(box.height).toBe(40)
+    await expect(box.width).toBe(24)
+    const hit = coarseHitSize(chooser)
+    await expect(hit.width).toBeGreaterThanOrEqual(24)
+    await expect(hit.height).toBeGreaterThanOrEqual(44)
+    // Its finger's reach starts at its own start, after the mic.
+    const after = getComputedStyle(chooser, "::after")
+    await expect(after.insetInlineStart).not.toMatch(/^-/)
+    await expect(Math.abs(box.left - mic.right)).toBeLessThanOrEqual(1)
+    await userEvent.click(chooser)
+    const first = await screen.findByRole("menuitemradio", {
+      name: "System default",
+    })
+    await waitFor(() => expect(first).toBeVisible())
+    await expect(screen.getByText("Choose microphone")).toBeVisible()
+    await userEvent.click(
+      screen.getByRole("menuitemradio", { name: "USB headset" })
+    )
+    await expect(args.onInputChange).toHaveBeenCalledWith("usb-headset")
+  },
+}
+
+/**
+ * Inputs as listed before the microphone was allowed, with no names:
+ * each named by its place; and one chosen before, now unplugged, shows
+ * as the system default.
+ */
+export const InputsUnnamed: Story = {
+  tags: ["!autodocs"],
+  args: {
+    inputs: [
+      { id: "a", label: "" },
+      { id: "b", label: " " },
+    ],
+    defaultInput: "unplugged",
+  },
+  play: async () => {
+    await userEvent.click(chooserOf())
+    const items = await screen.findAllByRole("menuitemradio")
+    await expect(items.map((item) => item.textContent)).toEqual([
+      "System default",
+      "Microphone 1",
+      "Microphone 2",
+    ])
+    await expect(items[0]).toHaveAttribute("aria-checked", "true")
+  },
+}
+
+/** A recording starting (the browser asking for the microphone): no choice. */
+export const InputsWhileStarting: Story = {
+  tags: ["!autodocs"],
+  args: { inputs, startPending: true },
+  play: async () => {
+    await userEvent.click(micOf())
+    await waitFor(() => expect(chooserOf()).toBeDisabled())
   },
 }
