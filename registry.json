@@ -1864,6 +1864,20 @@
       ]
     },
     {
+      "name": "agent-launch",
+      "type": "registry:component",
+      "title": "Agent Launch",
+      "description": "New tasks an agent proposes to start (each a conversation of its own), in an agent-request that asks the reader first, read at a glance rather than as a form: each AgentLaunch three lines in line with each other, its title (AgentLaunchTitle, one line), what it runs with as one quiet line cut short, its values a dot apart (AgentLaunchMeta of AgentLaunchMetaItem: the agent and model, the machine, the folder, the permissions; the dots not read out), and two lines of the first message it is sent (AgentLaunchMessage). A pencil at the title's end opens its settings in place, Done closes them: the title its editor (an Input), then a composer's box (AgentLaunchEdit: an InputGroup of the message, three lines to eight, and along its foot AgentLaunchControls, the pickers quiet as a composer's toolbar has them: ComposerSelect, a model picker, ComposerModePicker, an option a ComposerOptionButton with aria-pressed). What cannot change (a copy's agent, machine, folder: AgentLaunchMetaItem fixed, put first) stays a line over the box. Several are an AgentLaunchList, a rule between, each with a checkbox to leave it out (included, onIncludedChange; named by its title), its title and message muted when left out. The request's choices (Don't start, Always start like this, Start) are the app's, in AgentRequestFooter. Fits the composer's width on a phone (ComposerTakeover).",
+      "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
+      "registryDependencies": ["Bowl42/agentui/button", "checkbox"],
+      "files": [
+        {
+          "path": "src/components/agent-launch.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
       "name": "agent-request",
       "type": "registry:component",
       "title": "Agent Request",

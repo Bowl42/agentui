@@ -93,31 +93,32 @@ Copied into your app as a starting point to edit.
 
 ### Conversation
 
-| Item                            | What it is                                                                                     |
-| ------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `markdown`                      | An agent's Markdown, streamed or not, at a conversation's reading rhythm.                      |
-| `user-message`                  | A message the user sent: a bubble cut to six lines, its files and links as chips, its actions. |
-| `agent-request`                 | The agent asks: approve a tool call or answer a question, in the composer's place.             |
-| `agent-event`                   | Something from outside, e.g. a monitor's line, a background task's end or a wake-up.           |
-| `agent-turn-changes`            | What a turn changed and drew on: files edited, sources read.                                   |
-| `tool-call-data`                | A tool call's input or output, for a tool the app has no view of its own for.                  |
-| `plan-card`                     | A proposed plan to revise or implement.                                                        |
-| `todo-list`                     | An agent's to-do list: how many are done and which item is in progress.                        |
-| `message-error`                 | Why a turn failed and what to do next.                                                         |
-| `message-divider`               | An event between messages: a day, the context compacted, the model switched.                   |
-| `message-outline`               | A long answer's outline, beside it or in a button at its top.                                  |
-| `message-reader`                | A message read on its own, over the conversation, with its outline and search.                 |
-| `message-scroller-load-earlier` | Loads earlier messages of a long conversation.                                                 |
-| `conversation-skeleton`         | A conversation not here yet: a message asked and the lines of an answer.                       |
-| `conversation-find`             | Ctrl/⌘F through a conversation, folded parts included.                                         |
-| `conversation-minimap`          | A conversation's map, a tick per user message, in the margin.                                  |
-| `conversation-details`          | A conversation's details: where it runs, its branch and changes, its subagents.                |
-| `selection-actions`             | A toolbar by selected text: quote it, or the app's own actions.                                |
-| `media-gallery`                 | Images, videos and recordings in a message, opening a viewer of them all.                      |
-| `diff-block`                    | A unified diff, a code block per file.                                                         |
-| `table-preview`                 | A table to look at, copy and download, framed as a code block.                                 |
-| `clamp`                         | Content cut to a number of lines, with a row that shows the rest.                              |
-| `chip`                          | The one chip look for files, images, links and mentions.                                       |
+| Item                            | What it is                                                                                            |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `markdown`                      | An agent's Markdown, streamed or not, at a conversation's reading rhythm.                             |
+| `user-message`                  | A message the user sent: a bubble cut to six lines, its files and links as chips, its actions.        |
+| `agent-launch`                  | New tasks the agent proposes to start, each a title, a line of meta and its message, edited in place. |
+| `agent-request`                 | The agent asks: approve a tool call or answer a question, in the composer's place.                    |
+| `agent-event`                   | Something from outside, e.g. a monitor's line, a background task's end or a wake-up.                  |
+| `agent-turn-changes`            | What a turn changed and drew on: files edited, sources read.                                          |
+| `tool-call-data`                | A tool call's input or output, for a tool the app has no view of its own for.                         |
+| `plan-card`                     | A proposed plan to revise or implement.                                                               |
+| `todo-list`                     | An agent's to-do list: how many are done and which item is in progress.                               |
+| `message-error`                 | Why a turn failed and what to do next.                                                                |
+| `message-divider`               | An event between messages: a day, the context compacted, the model switched.                          |
+| `message-outline`               | A long answer's outline, beside it or in a button at its top.                                         |
+| `message-reader`                | A message read on its own, over the conversation, with its outline and search.                        |
+| `message-scroller-load-earlier` | Loads earlier messages of a long conversation.                                                        |
+| `conversation-skeleton`         | A conversation not here yet: a message asked and the lines of an answer.                              |
+| `conversation-find`             | Ctrl/⌘F through a conversation, folded parts included.                                                |
+| `conversation-minimap`          | A conversation's map, a tick per user message, in the margin.                                         |
+| `conversation-details`          | A conversation's details: where it runs, its branch and changes, its subagents.                       |
+| `selection-actions`             | A toolbar by selected text: quote it, or the app's own actions.                                       |
+| `media-gallery`                 | Images, videos and recordings in a message, opening a viewer of them all.                             |
+| `diff-block`                    | A unified diff, a code block per file.                                                                |
+| `table-preview`                 | A table to look at, copy and download, framed as a code block.                                        |
+| `clamp`                         | Content cut to a number of lines, with a row that shows the rest.                                     |
+| `chip`                          | The one chip look for files, images, links and mentions.                                              |
 
 ### Composer
 
