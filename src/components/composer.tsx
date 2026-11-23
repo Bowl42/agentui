@@ -737,6 +737,8 @@ type ComposerContextValue = {
   /** A recording in progress, for the editor's and the toolbar's place. */
   voice: VoiceSession | null
   setVoice: (voice: VoiceSession | null) => void
+  /** Why a recording would not start, under the box until dismissed. */
+  setVoiceError: (error: VoiceError | null) => void
   /** A sent message recalled into the box: which, of how many. */
   recall: { position: number; count: number } | null
   /** The id of the line under the box saying why it could not send. */
@@ -782,22 +784,42 @@ function createStore<T>(initial: T): Store<T> {
   }
 }
 
-/** A recording, as `ComposerVoice` runs it. */
-type VoiceSession = {
+/** A recording's state, as `ComposerVoice` keeps it. */
+type VoiceState = {
   /** When it started, by `performance.now()`. */
   startedAt: number
   /** Whether the words are being made out. */
   transcribing: boolean
+  /** Whether they could not be: it waits for a Retry or Cancel. */
+  failed: boolean
+  /** Whether the mic is held down: let go, it finishes. */
+  held: boolean
+  /** Whether, held, it is slid back far enough to cancel when let go. */
+  cancelling: boolean
+  /** The longest it records, in seconds. */
+  limit: number | undefined
+}
+
+/** A recording, as `ComposerVoice` runs it. */
+type VoiceSession = VoiceState & {
   cancel: () => void
+  /** Makes out its words; again, after they failed. */
   finish: () => void
   labels: ComposerVoiceLabels
 }
+
+/** Why a recording would not start, and its dismiss button's name. */
+type VoiceError = { message: string; dismiss: string }
 
 /** What the app tells of a recording as it goes. */
 type VoiceInput = {
   levels: readonly number[]
   /** How long it has run, in seconds; else timed from its start. */
   duration?: number | undefined
+  /** The words made out so far; given, a live transcript. */
+  transcript?: string | undefined
+  /** The words after them, still changing. */
+  interim?: string | undefined
 }
 
 type ComposerVoiceLabels = {
@@ -805,6 +827,25 @@ type ComposerVoiceLabels = {
   recording: string
   cancel: string
   finish: string
+  /** A live transcript with no words yet. */
+  listening: string
+  /** The words could not be made out. */
+  failed: string
+  retry: string
+  /** Held: "Slide to cancel". */
+  slide: string
+  /** Held and slid back: "Release to cancel". */
+  release: string
+  /** The last seconds of `maxDuration`: "8s left". */
+  left: (seconds: number) => string
+  /** It would not start: the microphone not allowed. */
+  denied: string
+  /** None found. */
+  noMicrophone: string
+  /** Else. */
+  unavailable: string
+  /** Closes why it would not start. */
+  dismiss: string
 }
 
 /** Text that looks like a secret, as the app's `detectSecret` finds it. */
@@ -1956,6 +1997,23 @@ function ComposerForm({
   const group = React.useRef<HTMLDivElement>(null)
   const interrupt = React.useRef(false)
   const [voice, setVoice] = React.useState<VoiceSession | null>(null)
+  // Why a recording would not start, and the text then: once it is
+  // written in, that is the reader's answer, and it goes.
+  const [voiceErrorState, setVoiceErrorState] = React.useState<{
+    error: VoiceError
+    value: ComposerValue
+  } | null>(null)
+  const voiceError =
+    voiceErrorState?.value === value ? voiceErrorState.error : null
+  const valueRef = React.useRef(value)
+  React.useLayoutEffect(() => {
+    valueRef.current = value
+  })
+  const setVoiceError = React.useCallback(
+    (error: VoiceError | null) =>
+      setVoiceErrorState(error && { error, value: valueRef.current }),
+    []
+  )
   const [voiceLevels] = React.useState(() =>
     createStore<VoiceInput>({ levels: [] })
   )
@@ -2698,6 +2756,7 @@ function ComposerForm({
     editing,
     voice,
     setVoice,
+    setVoiceError,
     recall: recall
       ? { position: recall.index + 1, count: history?.length ?? 0 }
       : null,
@@ -2882,6 +2941,28 @@ function ComposerForm({
                 {allLabels.retry}
               </Button>
             ) : null}
+          </div>
+        ) : voiceError ? (
+          <div
+            data-slot="composer-voice-error"
+            role="alert"
+            className="mt-2 flex min-h-6 items-center gap-2 ps-2 text-2sm text-muted-foreground [&>svg]:size-3.5 [&>svg]:shrink-0"
+          >
+            <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
+            <span className="min-w-0">{voiceError.message}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label={voiceError.dismiss}
+              className="ms-auto text-subtle-foreground hover:text-foreground"
+              onClick={() => {
+                setVoiceError(null)
+                editor.focus()
+              }}
+            >
+              <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+            </Button>
           </div>
         ) : null}
       </form>
@@ -5899,14 +5980,65 @@ const defaultVoiceLabels: ComposerVoiceLabels = {
   recording: "Recording",
   cancel: "Cancel",
   finish: "Done",
+  listening: "Listening…",
+  failed: "Couldn't make out the words",
+  retry: "Retry",
+  slide: "Slide to cancel",
+  release: "Release to cancel",
+  left: (seconds) => `${seconds}s left`,
+  denied: "Microphone access is off: allow it in the site's settings",
+  noMicrophone: "No microphone found",
+  unavailable: "Couldn't start the microphone",
+  dismiss: "Dismiss",
+}
+
+/** Held this long or more, the mic records until let go; less, a tap. */
+const holdDelay = 300
+/** How far a held mic slides back, in px, to cancel when let go. */
+const slideToCancel = 80
+/** The seconds left of `maxDuration` that the time counts down. */
+const countdown = 10
+
+/**
+ * What a recording that would not start says: the browser's
+ * `getUserMedia` errors by their names, anything else as unavailable.
+ */
+function voiceErrorOf(error: unknown, labels: ComposerVoiceLabels) {
+  const name = error instanceof Error ? error.name : ""
+  if (name === "NotAllowedError" || name === "SecurityError")
+    return labels.denied
+  if (name === "NotFoundError" || name === "OverconstrainedError")
+    return labels.noMicrophone
+  return labels.unavailable
+}
+
+/** The words of a live transcript, the settled and the still changing. */
+function liveText(input: VoiceInput) {
+  return [input.transcript, input.interim]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" ")
 }
 
 /**
  * Voice input: the mic of the toolbar. It records through the app
- * (`onStart`), shows the time and a waveform of the app's `levels` in
- * the text's place, and on Done puts what `onFinish` makes of it, the
+ * (`onStart`) and on Done puts what `onFinish` makes of it, the
  * transcript, in the text at the caret, to edit before sending. Cancel
  * or Escape drops it (`onCancel`).
+ *
+ * While it records, the time and a waveform of the app's `levels` take
+ * the text's place; given a live `transcript` (and its `interim` words,
+ * still changing, in grey), the words do, the time and a smaller wave
+ * going to the toolbar. Its tools' place, Cancel and Done.
+ *
+ * Tapped, it records until Done; held (pointer or Space), until let go,
+ * slid back to cancel. `submitOnFinish` sends what it made out at once:
+ * always, or (`"hold"`) only when it was held. `maxDuration` counts its
+ * last seconds down and finishes at its end.
+ *
+ * If it will not start, a line under the box says why: `onStart`'s
+ * rejection, by the browser's `getUserMedia` error names (access off, no
+ * microphone). If `onFinish` fails, the recording stays, with a Retry.
  */
 function ComposerVoice({
   onStart,
@@ -5914,84 +6046,250 @@ function ComposerVoice({
   onFinish,
   levels = noLevels,
   duration,
+  transcript,
+  interim,
+  maxDuration,
+  submitOnFinish = false,
   labels,
   className,
+  onClick,
+  onKeyDown,
+  onPointerDown,
   ...props
-}: Omit<React.ComponentProps<typeof Button>, "onClick" | "children"> & {
-  /** Starts recording, e.g. asks for the microphone; a failure starts nothing. */
+}: Omit<React.ComponentProps<typeof Button>, "children"> & {
+  /**
+   * Starts recording, e.g. asks for the microphone. A rejection starts
+   * nothing and says why under the box: a `getUserMedia` error's name
+   * picks the words (`NotAllowedError`, `NotFoundError`).
+   */
   onStart: () => void | Promise<void>
   onCancel?: () => void
-  /** Stops recording; its transcript, if any, goes in the text. */
+  /**
+   * Stops recording; its transcript, if any, goes in the text (nothing
+   * returned, the live `transcript`). A rejection keeps the recording,
+   * with a Retry that calls it again.
+   */
   onFinish: () =>
     ComposerValue | string | void | Promise<ComposerValue | string | void>
   /** Recent input levels from 0 to 1, the latest last. */
   levels?: readonly number[]
   /** How long it has recorded, in seconds, as the app's recorder says. */
   duration?: number
+  /**
+   * The words made out so far, as they are: given (even empty), they
+   * are shown in the text's place while it records.
+   */
+  transcript?: string
+  /** The words after them still being made out, shown in grey. */
+  interim?: string
+  /** The longest it records, in seconds: its last 10 count down. */
+  maxDuration?: number
+  /** Sends the words once made out: always, or only when held. */
+  submitOnFinish?: boolean | "hold"
   labels?: Partial<ComposerVoiceLabels>
 }) {
   const composer = useComposer()
+  const [editor] = useLexicalComposerContext()
   const all = { ...defaultVoiceLabels, ...labels }
-  const [session, setSession] = React.useState<{
-    startedAt: number
-    transcribing: boolean
-  } | null>(null)
-  const latest = React.useRef({ onCancel, onFinish, all, composer })
-  const { voiceLevels } = composer
+  const [session, setSession] = React.useState<VoiceState | null>(null)
+  const sessionRef = React.useRef(session)
+  // A pointer or Space holding the mic down: where and when it started.
+  const hold = React.useRef<{ at: number; x: number; rtl: boolean } | null>(
+    null
+  )
+  const latest = React.useRef({
+    onCancel,
+    onFinish,
+    all,
+    composer,
+    submitOnFinish,
+  })
+  const { voiceLevels, setVoice, setVoiceError } = composer
   React.useLayoutEffect(() => {
-    latest.current = { onCancel, onFinish, all, composer }
+    latest.current = { onCancel, onFinish, all, composer, submitOnFinish }
   })
   React.useLayoutEffect(() => {
-    voiceLevels.set({ levels, duration })
-  }, [voiceLevels, levels, duration])
+    voiceLevels.set({ levels, duration, transcript, interim })
+  }, [voiceLevels, levels, duration, transcript, interim])
 
-  const { setVoice } = composer
-  React.useLayoutEffect(() => {
-    if (!session) {
-      setVoice(null)
-      return
-    }
+  // Kept in the ref at once: a release may come before React renders.
+  const commit = React.useCallback((next: VoiceState | null) => {
+    sessionRef.current = next
+    setSession(next)
+  }, [])
+  const update = React.useCallback(
+    (change: Partial<VoiceState>) => {
+      const current = sessionRef.current
+      if (current) commit({ ...current, ...change })
+    },
+    [commit]
+  )
+
+  const actions = React.useMemo(() => {
     const end = () => {
-      setSession(null)
+      hold.current = null
+      commit(null)
       latest.current.composer.focus()
     }
-    setVoice({
-      ...session,
-      labels: latest.current.all,
-      cancel: () => {
-        latest.current.onCancel?.()
-        end()
-      },
-      finish: () => {
-        setSession((current) => current && { ...current, transcribing: true })
-        Promise.resolve()
-          .then(() => latest.current.onFinish())
-          .then((result) => {
+    const cancel = () => {
+      latest.current.onCancel?.()
+      end()
+    }
+    const finish = () => {
+      const current = sessionRef.current
+      if (!current || current.transcribing) return
+      const send =
+        latest.current.submitOnFinish === true ||
+        (latest.current.submitOnFinish === "hold" && current.held)
+      const live = liveText(voiceLevels.get())
+      update({ transcribing: true, failed: false, cancelling: false })
+      Promise.resolve()
+        .then(() => latest.current.onFinish())
+        .then(
+          (result) => {
+            const words = result?.length ? result : live
             end()
-            if (result?.length)
-              latest.current.composer.insertValue(
-                typeof result === "string" ? [result] : result
+            if (!words.length) return
+            latest.current.composer.insertValue(
+              typeof words === "string" ? [words] : words
+            )
+            if (send)
+              // Once the editor has the words.
+              requestAnimationFrame(() =>
+                editor.getRootElement()?.closest("form")?.requestSubmit()
               )
-          }, end)
-      },
-    })
-  }, [session, setVoice])
+          },
+          () => update({ transcribing: false, failed: true, held: false })
+        )
+    }
+    return { cancel, finish }
+  }, [editor, commit, update, voiceLevels])
+
+  React.useLayoutEffect(() => {
+    setVoice(
+      session ? { ...session, ...actions, labels: latest.current.all } : null
+    )
+  }, [session, actions, setVoice])
 
   React.useEffect(() => () => setVoice(null), [setVoice])
+
+  // At its longest, it finishes.
+  React.useEffect(() => {
+    if (!session || session.transcribing || session.failed || !maxDuration)
+      return
+    const elapsed = duration ?? (performance.now() - session.startedAt) / 1000
+    const timer = setTimeout(
+      actions.finish,
+      Math.max(0, (maxDuration - elapsed) * 1000)
+    )
+    return () => clearTimeout(timer)
+  }, [session, maxDuration, duration, actions])
+
+  const start = (held: boolean) => {
+    setVoiceError(null)
+    Promise.resolve(onStart()).then(
+      () =>
+        commit({
+          startedAt: performance.now(),
+          transcribing: false,
+          failed: false,
+          // Let go while it was starting: a tap.
+          held: held && hold.current !== null,
+          cancelling: false,
+          limit: maxDuration,
+        }),
+      (error: unknown) => {
+        hold.current = null
+        setVoiceError({
+          message: voiceErrorOf(error, latest.current.all),
+          dismiss: latest.current.all.dismiss,
+        })
+      }
+    )
+  }
+
+  // Let go: a tap records on, a hold finishes, or cancels slid back.
+  const release = () => {
+    const held = hold.current
+    hold.current = null
+    const current = sessionRef.current
+    if (!held || !current?.held) return
+    if (performance.now() - held.at < holdDelay)
+      return update({ held: false, cancelling: false })
+    if (current.cancelling) actions.cancel()
+    else actions.finish()
+  }
+
+  const press = (x: number, target: HTMLElement) => {
+    hold.current = {
+      at: performance.now(),
+      x,
+      rtl: getComputedStyle(target).direction === "rtl",
+    }
+    start(true)
+  }
 
   return (
     <ComposerButton
       data-slot="composer-voice"
       aria-label={all.record}
       disabled={composer.disabled || props.disabled}
-      onClick={() => {
-        Promise.resolve(onStart()).then(
-          () =>
-            setSession({ startedAt: performance.now(), transcribing: false }),
-          () => {}
-        )
+      onPointerDown={(event) => {
+        onPointerDown?.(event)
+        if (event.defaultPrevented || event.button !== 0 || hold.current) return
+        // Not a focus, a selection or a scroll, but a press.
+        event.preventDefault()
+        press(event.clientX, event.currentTarget)
+        const pointer = event.pointerId
+        const move = (moved: PointerEvent) => {
+          const held = hold.current
+          if (moved.pointerId !== pointer || !held) return
+          const back = (held.x - moved.clientX) * (held.rtl ? -1 : 1)
+          const cancelling = back > slideToCancel
+          if (
+            sessionRef.current?.held &&
+            sessionRef.current.cancelling !== cancelling
+          )
+            update({ cancelling })
+        }
+        const up = (ended: PointerEvent) => {
+          if (ended.pointerId !== pointer) return
+          window.removeEventListener("pointermove", move)
+          window.removeEventListener("pointerup", up)
+          window.removeEventListener("pointercancel", up)
+          if (ended.type === "pointercancel" && sessionRef.current?.held) {
+            hold.current = null
+            return actions.cancel()
+          }
+          release()
+        }
+        window.addEventListener("pointermove", move)
+        window.addEventListener("pointerup", up)
+        window.addEventListener("pointercancel", up)
       }}
-      className={className}
+      onKeyDown={(event) => {
+        onKeyDown?.(event)
+        if (event.defaultPrevented || event.key !== " ") return
+        // Space held records until let go; not as a click.
+        event.preventDefault()
+        if (event.repeat || hold.current) return
+        press(0, event.currentTarget)
+        const up = (ended: KeyboardEvent) => {
+          if (ended.key !== " ") return
+          ended.preventDefault()
+          window.removeEventListener("keyup", up)
+          release()
+        }
+        window.addEventListener("keyup", up)
+      }}
+      onClick={(event) => {
+        onClick?.(event)
+        // Enter's click; a pointer's press started it already.
+        if (!event.defaultPrevented && event.detail === 0 && !hold.current)
+          start(false)
+      }}
+      onContextMenu={(event) => event.preventDefault()}
+      className={cn("touch-none select-none", className)}
       {...props}
     >
       <HugeiconsIcon icon={Mic01Icon} strokeWidth={2} />
@@ -5999,63 +6297,133 @@ function ComposerVoice({
   )
 }
 
-/** The toolbar while recording: Cancel, and Done that keeps the words. */
+/**
+ * The toolbar while recording. Tapped: Cancel, and Done that keeps the
+ * words (with a live transcript, the time and a wave before them); the
+ * words not made out, Retry. Held: where to slide to cancel, and the mic.
+ */
 function VoiceControls({ voice }: { voice: VoiceSession }) {
+  const { voiceLevels } = useComposer()
+  const live = React.useSyncExternalStore(
+    voiceLevels.subscribe,
+    () => isLive(voiceLevels.get()),
+    () => isLive(voiceLevels.get())
+  )
   const done = React.useRef<HTMLButtonElement>(null)
-  React.useEffect(() => done.current?.focus(), [])
+  React.useEffect(() => {
+    if (!voice.held) done.current?.focus()
+  }, [voice.held, voice.failed])
+  // Held, Escape cancels too: the focus is not here.
+  const { held, cancel } = voice
+  React.useEffect(() => {
+    if (!held) return
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return
+      event.preventDefault()
+      cancel()
+    }
+    window.addEventListener("keydown", escape)
+    return () => window.removeEventListener("keydown", escape)
+  }, [held, cancel])
   return (
     <div
       data-slot="composer-voice-controls"
-      className="ms-auto flex items-center"
+      data-held={voice.held || undefined}
+      className="flex min-w-0 flex-1 items-center"
       onKeyDown={(event) => {
         if (event.key !== "Escape") return
         event.preventDefault()
         voice.cancel()
       }}
     >
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="me-3"
-        disabled={voice.transcribing}
-        onClick={voice.cancel}
-      >
-        {voice.labels.cancel}
-      </Button>
-      <Button
-        ref={done}
-        type="button"
-        size="icon"
-        aria-label={voice.labels.finish}
-        disabled={voice.transcribing}
-        focusableWhenDisabled
-        onClick={voice.finish}
-        className="relative rounded-full max-sm:size-9"
-      >
-        {voice.transcribing ? (
-          <Spinner />
-        ) : (
-          <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} />
-        )}
-      </Button>
+      {live && !voice.failed ? <VoiceMeter voice={voice} small /> : null}
+      {voice.held ? (
+        <>
+          <span
+            aria-live="polite"
+            className={cn(
+              "ms-auto me-3 flex items-center gap-1 text-2sm text-muted-foreground [&>svg]:size-3.5",
+              voice.cancelling && "text-foreground"
+            )}
+          >
+            {voice.cancelling ? null : (
+              <HugeiconsIcon
+                icon={ArrowLeft01Icon}
+                strokeWidth={2}
+                className="rtl:rotate-180"
+              />
+            )}
+            {voice.cancelling ? voice.labels.release : voice.labels.slide}
+          </span>
+          <span
+            aria-hidden
+            data-slot="composer-voice-held"
+            // Where the finger is, near enough: the mic, lit; let go of
+            // to cancel, struck out.
+            className={cn(
+              "grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-colors max-sm:size-9 [&>svg]:size-4",
+              voice.cancelling &&
+                "bg-muted text-muted-foreground inset-ring inset-ring-border"
+            )}
+          >
+            <HugeiconsIcon
+              icon={voice.cancelling ? Cancel01Icon : Mic01Icon}
+              strokeWidth={2}
+            />
+          </span>
+        </>
+      ) : (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="ms-auto me-3"
+            disabled={voice.transcribing}
+            onClick={voice.cancel}
+          >
+            {voice.labels.cancel}
+          </Button>
+          {voice.failed ? (
+            <Button ref={done} type="button" size="sm" onClick={voice.finish}>
+              {voice.labels.retry}
+            </Button>
+          ) : (
+            <Button
+              ref={done}
+              type="button"
+              size="icon"
+              aria-label={voice.labels.finish}
+              disabled={voice.transcribing}
+              focusableWhenDisabled
+              onClick={voice.finish}
+              className="relative rounded-full max-sm:size-9"
+            >
+              {voice.transcribing ? (
+                <Spinner />
+              ) : (
+                <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} />
+              )}
+            </Button>
+          )}
+        </>
+      )}
     </div>
   )
 }
 
-/** Bars of the waveform shown at once. */
+/** Bars of the waveform shown at once; in the toolbar, fewer. */
 const waveSlots = 44
+const smallWaveSlots = 16
 
 const noLevels: readonly number[] = []
 
-/** In the text's place while recording: a dot, the time, the waveform. */
-function VoiceWave({ voice }: { voice: VoiceSession }) {
-  const { voiceLevels } = useComposer()
-  const input = React.useSyncExternalStore(
-    voiceLevels.subscribe,
-    voiceLevels.get,
-    voiceLevels.get
-  )
+/** Whether the app gives a live transcript. */
+const isLive = (input: VoiceInput) =>
+  input.transcript !== undefined || input.interim !== undefined
+
+/** How long it has recorded, ticking where the app does not say. */
+function useVoiceTime(voice: VoiceSession, input: VoiceInput) {
   const [now, setNow] = React.useState(voice.startedAt)
   React.useEffect(() => {
     const timer = setInterval(() => setNow(performance.now()), 250)
@@ -6066,24 +6434,77 @@ function VoiceWave({ voice }: { voice: VoiceSession }) {
     Math.floor(input.duration ?? (now - voice.startedAt) / 1000)
   )
   const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
-  const shown = input.levels.slice(-waveSlots)
+  const left =
+    voice.limit !== undefined && voice.limit - seconds <= countdown
+      ? Math.max(0, Math.ceil(voice.limit - seconds))
+      : null
+  return { time, left }
+}
+
+/**
+ * A dot, the time (its last seconds counted down) and the waveform: in
+ * the text's place, or `small` in the toolbar's start.
+ */
+function VoiceMeter({
+  voice,
+  small = false,
+}: {
+  voice: VoiceSession
+  small?: boolean
+}) {
+  const { voiceLevels } = useComposer()
+  const input = React.useSyncExternalStore(
+    voiceLevels.subscribe,
+    voiceLevels.get,
+    voiceLevels.get
+  )
+  const { time, left } = useVoiceTime(voice, input)
+  const slots = small ? smallWaveSlots : waveSlots
+  const shown = input.levels.slice(-slots)
+  const tall = small ? 12 : 20
   return (
     <div
-      data-slot="composer-voice-wave"
+      data-slot="composer-voice-meter"
       role="status"
       aria-label={`${voice.labels.recording} ${time}`}
-      className="flex min-h-11 w-full items-center gap-2 px-4 pt-3 pb-1 text-sm"
+      className={cn(
+        "flex min-w-0 items-center gap-2 text-sm",
+        small && "text-2sm",
+        // grid: track (its dot on the text's leading line: the toolbar
+        // starts where a button would, its glyph 6px in, 12px on a phone)
+        small && "ms-[calc(--spacing(1.5))] max-sm:ms-3",
+        // Slid back to cancel: what it would drop, faded.
+        voice.cancelling && "opacity-40"
+      )}
     >
       <span
         aria-hidden
-        className="size-2 shrink-0 rounded-full bg-foreground"
+        className="size-2 shrink-0 rounded-full bg-foreground motion-safe:animate-pulse"
       />
       <span aria-hidden className="text-muted-foreground tabular-nums">
         {time}
       </span>
+      {left !== null ? (
+        <span
+          aria-hidden
+          // A dot from the time before it.
+          className="text-foreground tabular-nums before:me-2 before:text-subtle-foreground before:content-['·'_/_'']"
+        >
+          {voice.labels.left(left)}
+        </span>
+      ) : null}
+      {/* Said once as the count starts, not at each second. */}
+      {left !== null ? (
+        <span aria-live="polite" className="sr-only">
+          {voice.labels.left(countdown)}
+        </span>
+      ) : null}
       <span
         aria-hidden
-        className="flex h-6 min-w-0 flex-1 items-center gap-0.5 overflow-hidden"
+        className={cn(
+          "flex min-w-0 items-center gap-0.5 overflow-hidden",
+          small ? "h-4" : "h-6 flex-1"
+        )}
       >
         {shown.map((level, index) => (
           <span
@@ -6091,11 +6512,11 @@ function VoiceWave({ voice }: { voice: VoiceSession }) {
             // grid: mark (a bar of the wave)
             className="w-0.75 shrink-0 rounded-full bg-muted-foreground"
             style={{
-              height: `${4 + Math.round(Math.min(1, Math.max(0, level)) * 20)}px`,
+              height: `${4 + Math.round(Math.min(1, Math.max(0, level)) * tall)}px`,
             }}
           />
         ))}
-        {Array.from({ length: waveSlots - shown.length }, (_, index) => (
+        {Array.from({ length: slots - shown.length }, (_, index) => (
           <span
             key={`rest-${index}`}
             // grid: mark (a bar of the wave)
@@ -6103,6 +6524,66 @@ function VoiceWave({ voice }: { voice: VoiceSession }) {
           />
         ))}
       </span>
+    </div>
+  )
+}
+
+/**
+ * In the text's place while recording: the meter, or the live
+ * transcript, its interim words grey, kept scrolled to its end; the
+ * words not made out, why.
+ */
+function VoiceWave({ voice }: { voice: VoiceSession }) {
+  const { voiceLevels } = useComposer()
+  const input = React.useSyncExternalStore(
+    voiceLevels.subscribe,
+    voiceLevels.get,
+    voiceLevels.get
+  )
+  const words = React.useRef<HTMLDivElement>(null)
+  React.useLayoutEffect(() => {
+    const element = words.current
+    if (element) element.scrollTop = element.scrollHeight
+  }, [input.transcript, input.interim])
+  if (voice.failed)
+    return (
+      <div
+        data-slot="composer-voice-failed"
+        role="alert"
+        className="flex min-h-11 w-full items-center gap-2 px-4 pt-3 pb-1 text-sm text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0"
+      >
+        <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
+        {voice.labels.failed}
+      </div>
+    )
+  if (!isLive(input))
+    return (
+      <div className="flex min-h-11 w-full items-center px-4 pt-3 pb-1">
+        <VoiceMeter voice={voice} />
+      </div>
+    )
+  const settled = input.transcript?.trim() ?? ""
+  const changing = input.interim?.trim() ?? ""
+  return (
+    <div
+      ref={words}
+      data-slot="composer-voice-transcript"
+      className={cn(
+        // As the text it becomes: 16/24, one line to eight.
+        "max-h-[calc(8lh+1rem)] min-h-[calc(1lh+1rem)] w-full overflow-y-auto px-4 pt-3 pb-1 text-base leading-6 break-words whitespace-pre-wrap",
+        voice.cancelling && "opacity-40"
+      )}
+    >
+      {settled}
+      {changing ? (
+        <span className="text-muted-foreground">
+          {settled ? " " : ""}
+          {changing}
+        </span>
+      ) : null}
+      {settled || changing ? null : (
+        <span className="text-subtle-foreground">{voice.labels.listening}</span>
+      )}
     </div>
   )
 }

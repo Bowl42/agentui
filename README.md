@@ -122,12 +122,13 @@ Copied into your app as a starting point to edit.
 
 ### Composer
 
-| Item              | What it is                                                                                                                                                                |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `composer`        | A chat's message box, built on [Lexical](https://lexical.dev): mentions, files and links as chips, attach, paste and drop, send or stop, an expanded editor with preview. |
-| `composer-queue`  | Messages queued while a turn runs, to edit, reorder or send now.                                                                                                          |
-| `composer-select` | A choice of one from the composer's toolbar, such as a mode or an agent.                                                                                                  |
-| `model-picker`    | A model and how hard it thinks.                                                                                                                                           |
+| Item              | What it is                                                                                                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `composer`        | A chat's message box, built on [Lexical](https://lexical.dev): mentions, files and links as chips, attach, paste and drop, dictation, send or stop, an expanded editor with preview. |
+| `composer-queue`  | Messages queued while a turn runs, to edit, reorder or send now.                                                                                                                     |
+| `composer-select` | A choice of one from the composer's toolbar, such as a mode or an agent.                                                                                                             |
+| `model-picker`    | A model and how hard it thinks.                                                                                                                                                      |
+| `voice-mode`      | A spoken conversation with the agent: an orb that moves with the voice, captions, mute and end; a page of its own or a bar in the composer's place.                                  |
 
 ### Viewers
 

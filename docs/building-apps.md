@@ -53,6 +53,7 @@ callbacks.
 | Settings                                                                               | a sidebar block, `Tabs`, `Field`, `Switch`, `Select`                                                                                                                                                                                                         |
 | Sign-in                                                                                | `login-01`…`login-05`                                                                                                                                                                                                                                        |
 | Chat input, mentions, attachments                                                      | `composer`, below                                                                                                                                                                                                                                            |
+| Dictating a message; talking with the agent                                            | `composer`'s `ComposerVoice` (below); a spoken conversation: `voice-mode`, below                                                                                                                                                                             |
 | Something of the app's own that floats over the page (a bar, a card, a jump button)    | `bg-popover shadow-float` (the theme's floating shadow, a hairline in it), no border; flat things a 1px `border`, no shadow                                                                                                                                  |
 
 App-specific kinds of content (an agent's tool call, a background task's
@@ -1727,6 +1728,44 @@ stays as it is.
   over the text if need be); a list of suggestions opens under its trigger, and the
   send button is grey while it is open (Enter takes a suggestion).
 
+#### Voice input
+
+`ComposerVoice` is the toolbar's mic. The app records (`onStart`) and
+makes out the words (`onFinish`); the composer shows the recording and
+puts the words in the text at the caret, to edit before sending.
+
+```tsx
+<ComposerVoice
+  onStart={recorder.start} // rejects with getUserMedia's error
+  onFinish={recorder.transcribe} // the words; a rejection keeps the take
+  onCancel={recorder.discard}
+  levels={recorder.levels} // 0 to 1, the latest last
+  transcript={live.final} // optional: words as they are made out
+  interim={live.interim}
+  maxDuration={120} // its last 10 seconds count down
+  submitOnFinish="hold" // send at once when held, not tapped
+/>
+```
+
+- Tapped, it records until Done (Escape or Cancel drops it); held,
+  pointer or Space, until let go, slid back past 80px to cancel ("Slide
+  to cancel", then "Release to cancel"). A press shorter than 300ms is
+  a tap, so a quick click never cuts a take short.
+- Without a `transcript`, the time and a waveform take the text's
+  place, and the words come at Done. With one (even empty: "Listening…"),
+  the words do, as the text will be (16/24), the `interim` ones grey,
+  the time and a smaller wave on the toolbar; Done keeps the words shown
+  when `onFinish` returns nothing.
+- If `onStart` rejects, a line under the box says why, by the
+  `getUserMedia` error's name: `NotAllowedError` (access off, where to
+  allow it), `NotFoundError` (no microphone), anything else
+  (unavailable); a ✕ or typing dismisses it.
+- If `onFinish` rejects, the take is kept: the box says the words could
+  not be made out, with Retry (`onFinish` again) and Cancel. Keep the
+  audio until one of them.
+- A global shortcut to dictate from anywhere (a held key) is the app's;
+  it can `click()` the mic, or focus it and let Space be held.
+
 #### A sent message
 
 `ComposerMessage` shows a sent `ComposerValue` with its chips where they
@@ -2093,6 +2132,54 @@ agent); without an icon, or without it, the trigger is as before.
   they are coming: "Refreshing models…" with a spinner, no empty panes,
   no "No models found".
 - Its text is `labels`, with English defaults.
+
+### `voice-mode`
+
+A spoken conversation with the agent. The app runs the audio (a
+realtime session, its own speech recognition and voice); the component
+shows where it is and gives the reader mute and end.
+
+```tsx
+<VoiceMode
+  state={state} // "connecting" | "listening" | "thinking" | "speaking"
+  level={level} // 0 to 1: the reader's voice listening, the agent's speaking
+  muted={muted}
+  onMutedChange={setMuted}
+  onInterrupt={stopSpeaking} // the orb, while the agent speaks, stops it
+>
+  <VoiceModeOrb />
+  <VoiceModeStatus />
+  <VoiceModeCaptions>
+    {lines.map((line) => (
+      <VoiceModeCaption
+        key={line.id}
+        speaker={line.speaker}
+        interim={line.interim}
+      >
+        {line.text}
+      </VoiceModeCaption>
+    ))}
+  </VoiceModeCaptions>
+  <VoiceModeControls>
+    <VoiceModeMute />
+    <VoiceModeEnd onClick={end} />
+  </VoiceModeControls>
+</VoiceMode>
+```
+
+- `variant="full"` fills its place: a panel, a `Sheet` or a page on a
+  phone. The orb (192px, 160px on a phone) and its status in the middle,
+  the last three lines said under it, the latest at the foot, older ones
+  fading out; the buttons at the foot, over the home indicator.
+- `variant="bar"` is a 56px row in the composer's place, the
+  conversation above it (the lines said as its messages): a small orb,
+  the status (read out, not shown, on a phone), the latest line, its end
+  kept in sight as it grows, the buttons.
+- `level` can change every frame: it sets a CSS variable that the orb's
+  rings and disc scale by. Muted or thinking, the rings rest; with less
+  motion asked for, the orb is still and the status says it all.
+- More buttons (captions on or off, a keyboard to type instead) are
+  `VoiceModeButton`s, round, `pressed` for a toggle.
 
 ### `copy-button`
 
