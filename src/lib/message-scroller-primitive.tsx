@@ -391,6 +391,8 @@ type MessageScrollerRegisterMessage = (
 // Internal context wiring the parts together. Not part of the public API.
 type MessageScrollerContextValue = {
   handleContentChange: () => void
+  keepEndThroughRebuild: (mutations: MutationRecord[]) => void
+  pointerHeldRef: React.RefObject<boolean>
   handleResize: () => void
   holdPlace: () => void
   observeVisibility: () => void
@@ -2243,6 +2245,47 @@ function useMessageScrollerController({
     [observeRowSize, schedulePendingScrollToMessageFlush, scheduleVisibilitySync]
   )
 
+  // agentui: whether a pointer is held down in the viewport (on its
+  // scrollbar, or carrying a text selection past its edge): the reader's
+  // scrolling, which keepEndThroughRebuild leaves alone.
+  const pointerHeldRef = React.useRef(false)
+  // agentui: where the last scroll event left the viewport while following
+  // (a script's scroll is told by one before the next frame): the place a
+  // rebuild is measured from.
+  const followedScrollTopRef = React.useRef(0)
+
+  // agentui: a message rebuilt in place, its nodes taken out and put back
+  // with a layout read in between (as a renderer does finishing a streamed
+  // reply), has the browser fit the scroll to the content without them:
+  // up from the end, by as much as they took. The content back, the end is
+  // below again and the scroll read as the reader's, so following was let
+  // go. Seen as the task that did it ends, before any scroll is read, the
+  // end is taken back at once. Read only where nodes went, as only that
+  // shrinks the content.
+  const keepEndThroughRebuild = React.useCallback(
+    (mutations: MutationRecord[]) => {
+      const viewport = viewportRef.current
+
+      if (
+        !viewport ||
+        modeRef.current !== "following-bottom" ||
+        !autoScrollRef.current ||
+        pointerHeldRef.current ||
+        !mutations.some((mutation) => mutation.removedNodes.length > 0)
+      ) {
+        return
+      }
+
+      if (
+        viewport.scrollTop <
+        followedScrollTopRef.current - SCROLL_POSITION_EPSILON
+      ) {
+        scrollToEnd({ behavior: "auto" })
+      }
+    },
+    [scrollToEnd]
+  )
+
   const userScrollIntent = React.useCallback(() => {
     if (
       modeRef.current === "following-bottom" ||
@@ -2293,6 +2336,10 @@ function useMessageScrollerController({
   const syncAfterScroll = React.useCallback(() => {
     scheduleVisibilitySync()
 
+    if (modeRef.current === "following-bottom" && viewportRef.current) {
+      followedScrollTopRef.current = viewportRef.current.scrollTop
+    }
+
     if (scrollFrameRef.current !== null) {
       return
     }
@@ -2336,6 +2383,8 @@ function useMessageScrollerController({
       handleContentChange,
       handleResize,
       holdPlace,
+      keepEndThroughRebuild,
+      pointerHeldRef,
       observeVisibility,
       pendingDefaultScrollStore,
       preserveScrollOnPrependRef,
@@ -2357,6 +2406,7 @@ function useMessageScrollerController({
       handleContentChange,
       handleResize,
       holdPlace,
+      keepEndThroughRebuild,
       observeVisibility,
       pendingDefaultScrollStore,
       scrollToEnd,
@@ -2565,6 +2615,7 @@ function MessageScrollerViewport({
   "aria-label": ariaLabel,
   children,
   onKeyDown,
+  onPointerDown,
   onScroll,
   onTouchMove,
   onTouchStart,
@@ -2577,6 +2628,7 @@ function MessageScrollerViewport({
 }: MessageScrollerViewportProps) {
   const {
     handleResize,
+    pointerHeldRef,
     preserveScrollOnPrependRef,
     setViewportElement,
     syncAfterScroll,
@@ -2599,6 +2651,24 @@ function MessageScrollerViewport({
     syncAfterScroll()
     onScroll?.(event)
   }
+
+  // agentui: held until it is let go anywhere (see keepEndThroughRebuild).
+  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    pointerHeldRef.current = true
+    onPointerDown?.(event)
+  }
+
+  React.useEffect(() => {
+    const release = () => {
+      pointerHeldRef.current = false
+    }
+    window.addEventListener("pointerup", release)
+    window.addEventListener("pointercancel", release)
+    return () => {
+      window.removeEventListener("pointerup", release)
+      window.removeEventListener("pointercancel", release)
+    }
+  }, [pointerHeldRef])
 
   // agentui: only a gesture toward the start releases following. One
   // toward the end (a wheel down, a sideways one over a wide code block,
@@ -2671,6 +2741,7 @@ function MessageScrollerViewport({
       aria-label={ariaLabel ?? "Messages"}
       tabIndex={tabIndex ?? 0}
       onKeyDown={handleKeyDown}
+      onPointerDown={handlePointerDown}
       onScroll={handleScroll}
       onTouchMove={handleTouchMove}
       onTouchStart={handleTouchStart}
@@ -2694,6 +2765,7 @@ function MessageScrollerContent({
   const {
     handleContentChange,
     handleResize,
+    keepEndThroughRebuild,
     setContentElement,
     setSpacerElement,
   } = useMessageScrollerContext()
@@ -2729,6 +2801,20 @@ function MessageScrollerContent({
 
     return () => observer.disconnect()
   }, [handleContentChange])
+
+  // agentui: nodes going anywhere in a message (see keepEndThroughRebuild).
+  React.useEffect(() => {
+    const content = contentRef.current
+
+    if (!content || typeof MutationObserver === "undefined") {
+      return
+    }
+
+    const observer = new MutationObserver(keepEndThroughRebuild)
+    observer.observe(content, { childList: true, subtree: true })
+
+    return () => observer.disconnect()
+  }, [keepEndThroughRebuild])
 
   React.useEffect(() => {
     const content = contentRef.current

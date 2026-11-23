@@ -318,6 +318,42 @@ export const FollowsPastGesturesTowardTheEnd: Story = {
   },
 }
 
+/**
+ * The reply's content rebuilt at once as it ends, the same size: a
+ * renderer finishing a streamed reply takes its nodes out and puts them
+ * back, laid out in between. WebKit moves the scroll up then, as if the
+ * reply were gone; that is the content's doing, not the reader's, so the
+ * reply is still followed to the end.
+ */
+export const FollowsThroughARebuild: Story = {
+  render: () => <Streaming />,
+  play: async ({ canvas }) => {
+    const viewport = canvas.getByRole("region", { name: "Conversation" })
+    const more = canvas.getByRole("button", { name: "Stream more" })
+    const gap = () =>
+      viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop
+    const grow = async () => {
+      const height = viewport.scrollHeight
+      more.click()
+      await waitFor(() => expect(viewport.scrollHeight).toBeGreaterThan(height))
+      await still(viewport)
+    }
+    await grow()
+    await grow()
+    await expect(gap()).toBeLessThanOrEqual(1)
+    const reply = viewport.querySelector<HTMLElement>(
+      '[data-message-id="reply"] [data-slot="message-content"]'
+    )!
+    const lines = [...reply.children]
+    reply.replaceChildren()
+    reply.getBoundingClientRect()
+    reply.append(...lines)
+    await still(viewport)
+    await grow()
+    await expect(gap()).toBeLessThanOrEqual(1)
+  },
+}
+
 /** The scroll buttons, which show only while there is room to scroll. */
 export const ScrollButtons: Story = {
   render: () => <Chat />,
@@ -1299,7 +1335,10 @@ export const LoadEarlier: Story = {
     await expect(load).toHaveAttribute("data-active", "false")
     await expect(load).toHaveAttribute("inert")
 
-    viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -300 }))
+    // A wheel up, as the reader's bubbles: it lets go of the end.
+    viewport.dispatchEvent(
+      new WheelEvent("wheel", { bubbles: true, deltaY: -300 })
+    )
     viewport.scrollTop = 0
     await waitFor(() => expect(load).toHaveAttribute("data-active", "true"))
     await still(viewport)
