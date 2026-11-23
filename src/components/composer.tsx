@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { LexicalComposer } from "@lexical/react/LexicalComposer"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import {
@@ -753,6 +754,12 @@ type ComposerContextValue = {
   setVoice: (voice: VoiceSession | null) => void
   /** Why a recording would not start, under the box until dismissed. */
   setVoiceError: (error: VoiceError | null) => void
+  /** Sends a talk take's words alone, the draft kept. */
+  submitTalk: (value: ComposerValue) => void
+  /** Asks for the editor focused once a talk take is over. */
+  focusAfterTalk: () => void
+  /** Whether that was asked, asked no more. */
+  takeFocusAfterTalk: () => boolean
   /** A sent message recalled into the box: which, of how many. */
   recall: { position: number; count: number } | null
   /** The id of the line under the box saying why it could not send. */
@@ -812,6 +819,21 @@ type VoiceState = {
   cancelling: boolean
   /** The longest it records, in seconds. */
   limit: number | undefined
+  /** Held on talk mode's bar: shown over the conversation. */
+  talk: boolean
+  /** Talk mode: the target under the finger, where letting go goes. */
+  target: "cancel" | "text" | null
+  /** Talk mode: sent, or put in the text, once its words are made out. */
+  finishing: "send" | "text" | null
+}
+
+/**
+ * Whether a take shows in the box (the waveform or its words in the
+ * text's place, Cancel and Done on the toolbar): not a talk take held,
+ * which shows over the conversation; one whose words failed does.
+ */
+function inBox(voice: VoiceSession | null): voice is VoiceSession {
+  return voice !== null && (!voice.talk || voice.failed)
 }
 
 /** A recording, as `ComposerVoice` runs it. */
@@ -875,6 +897,12 @@ type ComposerVoiceLabels = {
   ready: string
   /** Asked to start, not started yet (`onStart` pending). */
   starting: string
+  /** A long press held (`holdToTalk`): "Release to send". */
+  releaseToSend: string
+  /** The target that puts the words in the text: "To text". */
+  toText: string
+  /** On it: "Release to convert". */
+  releaseToText: string
 }
 
 /** An audio input the mic can record from, as the app lists them. */
@@ -1822,7 +1850,15 @@ type ComposerProps = Omit<
      * `followUp`: the resolved action while running, swapping queue and
      * steer with the modifier; "send" otherwise, including while editing.
      */
-    options: { interrupt: boolean; followUp: ComposerFollowUp }
+    options: {
+      interrupt: boolean
+      followUp: ComposerFollowUp
+      /**
+       * A talk take's words (`ComposerVoice`'s `talk`), sent alone: the
+       * draft stays in the box, so a controlled app keeps its `value`.
+       */
+      talk: boolean
+    }
   ) => void
   onStop?: () => void
   /**
@@ -2034,6 +2070,17 @@ function ComposerForm({
   const group = React.useRef<HTMLDivElement>(null)
   const interrupt = React.useRef(false)
   const [voice, setVoice] = React.useState<VoiceSession | null>(null)
+  const focusAfterTalkRef = React.useRef(false)
+  const focusAfterTalk = React.useCallback(() => {
+    focusAfterTalkRef.current = true
+  }, [])
+  const takeFocusAfterTalk = React.useCallback(() => {
+    const asked = focusAfterTalkRef.current
+    focusAfterTalkRef.current = false
+    return asked
+  }, [])
+  // A talk take's words, sent by the next submit instead of the box's.
+  const talkValue = React.useRef<ComposerValue | null>(null)
   // Why a recording would not start, and the text then: once it is
   // written in, that is the reader's answer, and it goes.
   const [voiceErrorState, setVoiceErrorState] = React.useState<{
@@ -2500,8 +2547,10 @@ function ComposerForm({
     event.preventDefault()
     const interrupting = interrupt.current
     interrupt.current = false
+    const talked = talkValue.current
+    talkValue.current = null
     if (disabled || submitDisabled) return
-    const message = [
+    const message = talked ?? [
       ...rowRef.current,
       ...editor.getEditorState().read($readValue),
     ]
@@ -2517,7 +2566,10 @@ function ComposerForm({
               : "queue"
             : followUp
           : "send",
+      talk: talked !== null,
     })
+    // A talk take's words went alone: the draft stays.
+    if (talked) return
     setPasted(null)
     if (!controlled) setUncontrolledValue([])
   }
@@ -2794,6 +2846,12 @@ function ComposerForm({
     voice,
     setVoice,
     setVoiceError,
+    focusAfterTalk,
+    takeFocusAfterTalk,
+    submitTalk: (value) => {
+      talkValue.current = value
+      editor.getRootElement()?.closest("form")?.requestSubmit()
+    },
     recall: recall
       ? { position: recall.index + 1, count: history?.length ?? 0 }
       : null,
@@ -3542,11 +3600,19 @@ function ComposerEditor({
   // where typing went nowhere (and, in WebKit, to a tool beside the mic,
   // its tooltip left open). Not taken from elsewhere the reader went.
   const recording = composer.voice !== null
+  const talkTake = composer.voice?.talk ?? false
   const wasRecording = React.useRef(recording)
+  const wasTalkTake = React.useRef(talkTake)
+  const { takeFocusAfterTalk } = composer
   React.useLayoutEffect(() => {
     const was = wasRecording.current
     wasRecording.current = recording
+    const talked = wasTalkTake.current
+    wasTalkTake.current = talkTake
     if (!was || recording) return
+    // A talk take (`holdToTalk`) over: the editor focused only where it
+    // was, or where its words went in; else the keyboard stays down.
+    if (talked && !takeFocusAfterTalk()) return
     const root = editor.getRootElement()
     const active = document.activeElement
     const box = root?.closest("[data-slot=composer]")
@@ -3580,7 +3646,7 @@ function ComposerEditor({
       { discrete: true }
     )
     if (document.activeElement !== root) editor.focus()
-  }, [recording, editor])
+  }, [recording, talkTake, takeFocusAfterTalk, editor])
 
   React.useEffect(() => {
     const unregister = [
@@ -3792,7 +3858,7 @@ function ComposerEditor({
           </div>
         </div>
       ) : null}
-      {composer.voice ? <VoiceWave voice={composer.voice} /> : null}
+      {inBox(composer.voice) ? <VoiceWave voice={composer.voice} /> : null}
       <TabsContent
         value="write"
         keepMounted
@@ -3801,7 +3867,7 @@ function ComposerEditor({
           "relative w-full min-w-0 flex-none",
           expanded && "min-h-0 flex-1",
           // While recording, the waveform takes its place.
-          composer.voice && "hidden"
+          inBox(composer.voice) && "hidden"
         )}
         // Without its tabs, the editor is not a tab panel.
         render={(panelProps) => {
@@ -5543,8 +5609,8 @@ function ComposerToolbar({
       }}
       {...props}
     >
-      <div className={voice ? "hidden" : "contents"}>{children}</div>
-      {voice ? <VoiceControls voice={voice} /> : null}
+      <div className={inBox(voice) ? "hidden" : "contents"}>{children}</div>
+      {inBox(voice) ? <VoiceControls voice={voice} /> : null}
     </div>
   )
 }
@@ -6083,6 +6149,9 @@ const defaultVoiceLabels: ComposerVoiceLabels = {
   shortcut: "",
   ready: "Microphone ready",
   starting: "Starting the microphone",
+  releaseToSend: "Release to send",
+  toText: "To text",
+  releaseToText: "Release to convert",
 }
 
 /** Held this long or more, the mic records until let go; less, a tap. */
@@ -6132,6 +6201,12 @@ function ariaKey(code: string) {
   const key = /^(?:Key|Digit)(.)$/.exec(code)
   return key ? key[1]! : code
 }
+
+/**
+ * Pressed this long, the composer (`holdToTalk`) talks: before a touch
+ * screen's own long press selects text or opens its menu.
+ */
+const longPressDelay = 400
 
 /** How far a held mic slides back, in px, to cancel when let go. */
 const slideToCancel = 80
@@ -6225,6 +6300,7 @@ function ComposerVoice({
   onInputsOpen,
   shortcut,
   ready = false,
+  holdToTalk = false,
   labels,
   className,
   onClick,
@@ -6286,6 +6362,13 @@ function ComposerVoice({
    * records at once. Shown on the idle mic.
    */
   ready?: boolean
+  /**
+   * On a touch screen, a long press on the composer talks: held, it
+   * records, over the conversation its words and where to slide to
+   * cancel or to put them in the text; let go elsewhere, they are sent.
+   * A tap types, as ever.
+   */
+  holdToTalk?: boolean
   labels?: Partial<ComposerVoiceLabels>
 }) {
   const composer = useComposer()
@@ -6311,7 +6394,13 @@ function ComposerVoice({
   })
   const { voiceLevels, setVoice, setVoiceError } = composer
   React.useLayoutEffect(() => {
-    latest.current = { onCancel, onFinish, all, composer, submitOnFinish }
+    latest.current = {
+      onCancel,
+      onFinish,
+      all,
+      composer,
+      submitOnFinish,
+    }
   })
   React.useLayoutEffect(() => {
     voiceLevels.set({ levels, duration, transcript, interim })
@@ -6340,31 +6429,50 @@ function ComposerVoice({
       latest.current.onCancel?.()
       end()
     }
-    const finish = () => {
+    // A talk take's words are sent, or put in the text (`how`; else as
+    // it was asked, sent by default); a button's click passes its event.
+    const finish = (how?: unknown) => {
       const current = sessionRef.current
       if (!current || current.transcribing) return
+      const talk = current.talk
+        ? how === "send" || how === "text"
+          ? how
+          : (current.finishing ?? "send")
+        : null
       const send =
         latest.current.submitOnFinish === true ||
         (latest.current.submitOnFinish === "hold" && current.held)
       const live = liveText(voiceLevels.get())
-      update({ transcribing: true, failed: false, cancelling: false })
+      update({
+        transcribing: true,
+        failed: false,
+        cancelling: false,
+        // A talk take let go: its overlay gone, the bar busy.
+        ...(talk ? { held: false, target: null, finishing: talk } : {}),
+      })
       Promise.resolve()
         .then(() => latest.current.onFinish())
         .then(
           (result) => {
             const words = result?.length ? result : live
             end()
-            if (!words.length) return
-            latest.current.composer.insertValue(
+            const value: ComposerValue =
               typeof words === "string" ? [words] : words
-            )
-            if (send)
+            if (talk === "send") {
+              if (words.length) latest.current.composer.submitTalk(value)
+              return
+            }
+            // In the text, at the caret or the end: the editor focused.
+            if (talk === "text") latest.current.composer.focusAfterTalk()
+            if (!words.length) return
+            latest.current.composer.insertValue(value)
+            if (send && !talk)
               // Once the editor has the words.
               requestAnimationFrame(() =>
                 editor.getRootElement()?.closest("form")?.requestSubmit()
               )
           },
-          () => update({ transcribing: false, failed: true, held: false })
+          () => update({ transcribing: false, failed: true })
         )
     }
     return { cancel, finish }
@@ -6390,7 +6498,10 @@ function ComposerVoice({
     return () => clearTimeout(timer)
   }, [session, maxDuration, duration, actions])
 
-  const start = (held: boolean, press?: { aborted: boolean }) => {
+  const start = (
+    held: boolean,
+    press?: { aborted: boolean; talk?: boolean }
+  ) => {
     setVoiceError(null)
     setStarting(true)
     Promise.resolve(onStart())
@@ -6411,6 +6522,9 @@ function ComposerVoice({
             held: held && hold.current !== null,
             cancelling: false,
             limit: maxDuration,
+            talk: press?.talk ?? false,
+            target: null,
+            finishing: null,
           })
         },
         (error: unknown) => {
@@ -6445,9 +6559,9 @@ function ComposerVoice({
   }
 
   const disabled = composer.disabled || props.disabled
-  const keyRef = React.useRef({ start, release, disabled })
+  const keyRef = React.useRef({ start, release, disabled, starting })
   React.useLayoutEffect(() => {
-    keyRef.current = { start, release, disabled }
+    keyRef.current = { start, release, disabled, starting }
   })
 
   // The `shortcut` key, from anywhere in the window.
@@ -6565,6 +6679,265 @@ function ComposerVoice({
     }
   }, [shortcut, editor, actions, update])
 
+  // A long press on the composer, on a touch screen (`holdToTalk`).
+  const cancelTarget = React.useRef<HTMLDivElement>(null)
+  const textTarget = React.useRef<HTMLDivElement>(null)
+  // The press held: its pointer, until let go.
+  const talkPress = React.useRef<{
+    aborted: boolean
+    talk: true
+    end: () => void
+  } | null>(null)
+  // Held, the microphone still opening: shown over the conversation too.
+  const [pressing, setPressing] = React.useState(false)
+
+  /**
+   * A take held by `pointer` from `x`: let go, sent, or as the target
+   * under it says. `focused`: the editor had the focus, given back after.
+   */
+  const holdTalk = (pointer: number, x: number, focused: boolean) => {
+    if (disabled || sessionRef.current || starting || hold.current) return
+    const root = editor.getRootElement()
+    const press = { aborted: false, talk: true as const, end: () => {} }
+    talkPress.current = press
+    setPressing(true)
+    hold.current = {
+      at: performance.now(),
+      x,
+      rtl: getComputedStyle(root ?? document.body).direction === "rtl",
+    }
+    navigator.vibrate?.(10)
+    start(true, press)
+    // Which target a point is over, a finger's breadth around it.
+    const over = (px: number, py: number) => {
+      for (const [target, element] of [
+        ["cancel", cancelTarget.current],
+        ["text", textTarget.current],
+      ] as const) {
+        const box = element?.getBoundingClientRect()
+        if (
+          box &&
+          px >= box.left - 8 &&
+          px <= box.right + 8 &&
+          py >= box.top - 8 &&
+          py <= box.bottom + 8
+        )
+          return target
+      }
+      return null
+    }
+    const move = (event: PointerEvent) => {
+      if (event.pointerId !== pointer) return
+      const current = sessionRef.current
+      if (!current?.talk || !current.held) return
+      const target = over(event.clientX, event.clientY)
+      if (target === current.target) return
+      if (target) navigator.vibrate?.(10)
+      update({ target })
+    }
+    // Let go: on a target, as it says; elsewhere, sent. Before the
+    // microphone opened, nothing (it is stopped as it does).
+    const letGo = (how?: "cancel" | "text") => {
+      if (talkPress.current !== press) return
+      press.end()
+      hold.current = null
+      const current = sessionRef.current
+      if (!current) {
+        press.aborted = true
+        return
+      }
+      const where = how ?? current.target
+      // The editor had the focus: it has it again, its keyboard up.
+      if (focused) composer.focusAfterTalk()
+      if (where === "cancel") actions.cancel()
+      else actions.finish(where === "text" ? "text" : "send")
+    }
+    const up = (event: PointerEvent) => {
+      if (event.pointerId === pointer) letGo()
+    }
+    // The touch taken (by the system) or a second finger: dropped.
+    const cancelled = (event: PointerEvent) => {
+      if (event.pointerId === pointer || event.type === "pointerdown")
+        letGo("cancel")
+    }
+    // The page hidden or the window left: the words kept, in the text.
+    const away = () => {
+      if (document.visibilityState === "hidden" || !document.hasFocus())
+        letGo("text")
+    }
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return
+      event.preventDefault()
+      letGo("cancel")
+    }
+    press.end = () => {
+      talkPress.current = null
+      setPressing(false)
+      window.removeEventListener("pointermove", move)
+      window.removeEventListener("pointerup", up)
+      window.removeEventListener("pointercancel", cancelled)
+      window.removeEventListener("pointerdown", cancelled)
+      window.removeEventListener("keydown", escape)
+      window.removeEventListener("blur", away)
+      document.removeEventListener("visibilitychange", away)
+    }
+    window.addEventListener("pointermove", move)
+    window.addEventListener("pointerup", up)
+    window.addEventListener("pointercancel", cancelled)
+    window.addEventListener("pointerdown", cancelled)
+    window.addEventListener("keydown", escape)
+    window.addEventListener("blur", away)
+    document.addEventListener("visibilitychange", away)
+  }
+  const holdTalkRef = React.useRef(holdTalk)
+  React.useLayoutEffect(() => {
+    holdTalkRef.current = holdTalk
+  })
+  // A press under way given up as the component goes.
+  React.useEffect(
+    () => () => {
+      talkPress.current?.end()
+    },
+    []
+  )
+  // Its take finished or gone while still held (at `maxDuration`): the
+  // press over, its finger's lifting nothing more.
+  const sawTalk = React.useRef(false)
+  React.useEffect(() => {
+    if (session?.talk) {
+      sawTalk.current = true
+      if (!session.held) talkPress.current?.end()
+    } else if (!session && sawTalk.current) {
+      sawTalk.current = false
+      talkPress.current?.end()
+    }
+  }, [session])
+
+  // The long press: a finger held still on the composer for 400ms. Not
+  // the platform's text gestures: the editor's text, while it has the
+  // focus, keeps its own (select, the caret, paste); with the keyboard
+  // down, the whole composer is the press's, the editor too. Controls
+  // keep theirs. A tap types, as ever.
+  React.useEffect(() => {
+    const root = editor.getRootElement()
+    const box = root?.closest<HTMLElement>("[data-slot=composer]")
+    if (!holdToTalk || !root || !box) return
+    const controls =
+      "button, a, input, textarea, select, label, [role=button], [role=link], [role=option], [data-slot=composer-chip]"
+    const ours = (target: Element) => {
+      const focused = root.contains(document.activeElement)
+      if (root.contains(target)) return !focused
+      return box.contains(target) && !target.closest(controls)
+    }
+    // Its text, selection and callout off while it is held, then as
+    // they were (Lexical has the editor's user-select inline).
+    const noText = [
+      "-webkit-user-select",
+      "user-select",
+      "-webkit-touch-callout",
+    ]
+    const withoutText = (element: HTMLElement) => {
+      const was = noText.map((name) => element.style.getPropertyValue(name))
+      for (const name of noText) element.style.setProperty(name, "none")
+      return () =>
+        noText.forEach((name, index) =>
+          was[index]
+            ? element.style.setProperty(name, was[index]!)
+            : element.style.removeProperty(name)
+        )
+    }
+    let press: {
+      id: number
+      x: number
+      y: number
+      started: boolean
+      timer: ReturnType<typeof setTimeout>
+      restore: (() => void) | null
+    } | null = null
+    const end = () => {
+      if (!press) return
+      clearTimeout(press.timer)
+      const done = press
+      press = null
+      window.removeEventListener("pointermove", move)
+      window.removeEventListener("pointerup", up)
+      window.removeEventListener("pointercancel", up)
+      // After the touch's own end, which it keeps from a tap's click.
+      setTimeout(() => {
+        done.restore?.()
+        window.removeEventListener("touchmove", still)
+        window.removeEventListener("touchend", still)
+      })
+    }
+    // Held, the finger's moves and its lifting are the take's: no
+    // scroll (which would take the touch), no click or focus after.
+    const still = (event: TouchEvent) => {
+      if (event.cancelable) event.preventDefault()
+    }
+    const move = (event: PointerEvent) => {
+      if (!press || press.started || event.pointerId !== press.id) return
+      // Moved before it was held: a scroll or a drag, not a press.
+      if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 10)
+        end()
+    }
+    const up = (event: PointerEvent) => {
+      if (press && event.pointerId === press.id) end()
+    }
+    const down = (event: PointerEvent) => {
+      if (
+        event.pointerType !== "touch" ||
+        !event.isPrimary ||
+        event.button !== 0 ||
+        press ||
+        hold.current ||
+        sessionRef.current ||
+        keyRef.current.disabled ||
+        keyRef.current.starting ||
+        !(event.target instanceof Element) ||
+        !ours(event.target)
+      )
+        return
+      const focused = root.contains(document.activeElement)
+      const current = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        started: false,
+        restore: null as (() => void) | null,
+        timer: setTimeout(() => {
+          if (press !== current) return
+          current.started = true
+          const restoreRoot = withoutText(root)
+          const restoreBox = withoutText(box)
+          current.restore = () => {
+            restoreRoot()
+            restoreBox()
+          }
+          window.addEventListener("touchmove", still, { passive: false })
+          window.addEventListener("touchend", still, { passive: false })
+          holdTalkRef.current(current.id, current.x, focused)
+        }, longPressDelay),
+      }
+      press = current
+      window.addEventListener("pointermove", move)
+      window.addEventListener("pointerup", up)
+      window.addEventListener("pointercancel", up)
+    }
+    // The platform's menu or selection for a press that is the take's.
+    const menu = (event: Event) => {
+      if (press?.started) event.preventDefault()
+    }
+    box.addEventListener("pointerdown", down)
+    box.addEventListener("contextmenu", menu)
+    document.addEventListener("selectstart", menu)
+    return () => {
+      end()
+      box.removeEventListener("pointerdown", down)
+      box.removeEventListener("contextmenu", menu)
+      document.removeEventListener("selectstart", menu)
+    }
+  }, [holdToTalk, editor])
+
   // Whether a press records at once, or is opening the microphone.
   const state = starting ? all.starting : ready ? all.ready : ""
   const button = (
@@ -6671,76 +7044,97 @@ function ComposerVoice({
     ) : (
       button
     )
-  if (!inputs?.length) return mic
+  // A long press held: over the conversation, its take.
+  const talkTake =
+    composer.voice?.talk && composer.voice.held ? composer.voice : null
+  const overlay =
+    pressing || talkTake ? (
+      <TalkOverlay
+        voice={talkTake}
+        starting={all.starting}
+        cancelRef={cancelTarget}
+        textRef={textTarget}
+      />
+    ) : null
+  if (!inputs?.length)
+    return (
+      <>
+        {mic}
+        {overlay}
+      </>
+    )
 
   const chosen =
     input && inputs.some((choice) => choice.id === input) ? input : ""
   return (
-    <ButtonGroup
-      ref={group}
-      data-slot="composer-voice-group"
-      className={cn(
-        "rounded-lg has-aria-expanded:bg-muted has-aria-expanded:text-foreground dark:has-aria-expanded:bg-muted/50",
-        className
-      )}
-    >
-      {mic}
-      <DropdownMenu
-        onOpenChange={(open) => {
-          if (open) onInputsOpen?.()
-        }}
+    <>
+      {overlay}
+      <ButtonGroup
+        ref={group}
+        data-slot="composer-voice-group"
+        className={cn(
+          "rounded-lg has-aria-expanded:bg-muted has-aria-expanded:text-foreground dark:has-aria-expanded:bg-muted/50",
+          className
+        )}
       >
-        <DropdownMenuTrigger
-          render={
-            <ComposerButton
-              data-slot="composer-voice-input"
-              aria-label={all.input}
-              disabled={disabled || starting}
-              // A split button's chevron: 24px wide, a target's least
-              // beside another (WCAG 2.5.8), as tall as the mic. Under a
-              // finger it reaches past its end, not over the mic.
-              className="w-6 aria-expanded:bg-transparent max-sm:w-6 pointer-coarse:after:start-0"
-            />
-          }
+        {mic}
+        <DropdownMenu
+          onOpenChange={(open) => {
+            if (open) onInputsOpen?.()
+          }}
         >
-          {/* 12px, as a split button's chevron: smaller than the mic. */}
-          <HugeiconsIcon
-            icon={ArrowDown01Icon}
-            strokeWidth={2}
-            className="size-3"
-          />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          side="top"
-          align="end"
-          anchor={group}
-          sheetTitle={all.input}
-          // 288px: a device's long name goes on to a second line.
-          className="w-72"
-        >
-          <DropdownMenuRadioGroup
-            aria-label={all.input}
-            value={chosen}
-            onValueChange={(id) => {
-              if (id !== chosen) onInputChange?.(String(id))
-            }}
+          <DropdownMenuTrigger
+            render={
+              <ComposerButton
+                data-slot="composer-voice-input"
+                aria-label={all.input}
+                disabled={disabled || starting}
+                // A split button's chevron: 24px wide, a target's least
+                // beside another (WCAG 2.5.8), as tall as the mic. Under a
+                // finger it reaches past its end, not over the mic.
+                className="w-6 aria-expanded:bg-transparent max-sm:w-6 pointer-coarse:after:start-0"
+              />
+            }
           >
-            <DropdownMenuRadioItem value="" closeOnClick>
-              {all.systemDefault}
-            </DropdownMenuRadioItem>
-            {inputs.map((choice, index) => (
-              <DropdownMenuRadioItem
-                key={choice.id}
-                value={choice.id}
-                closeOnClick
-              >
-                {choice.label.trim() || all.unnamedInput(index + 1)}
+            {/* 12px, as a split button's chevron: smaller than the mic. */}
+            <HugeiconsIcon
+              icon={ArrowDown01Icon}
+              strokeWidth={2}
+              className="size-3"
+            />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="top"
+            align="end"
+            anchor={group}
+            sheetTitle={all.input}
+            // 288px: a device's long name goes on to a second line.
+            className="w-72"
+          >
+            <DropdownMenuRadioGroup
+              aria-label={all.input}
+              value={chosen}
+              onValueChange={(id) => {
+                if (id !== chosen) onInputChange?.(String(id))
+              }}
+            >
+              <DropdownMenuRadioItem value="" closeOnClick>
+                {all.systemDefault}
               </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </ButtonGroup>
+              {inputs.map((choice, index) => (
+                <DropdownMenuRadioItem
+                  key={choice.id}
+                  value={choice.id}
+                  closeOnClick
+                >
+                  {choice.label.trim() || all.unnamedInput(index + 1)}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </ButtonGroup>
+    </>
   )
 }
 
@@ -6980,6 +7374,136 @@ function VoiceMeter({
  * transcript, its interim words grey, kept scrolled to its end; the
  * words not made out, why.
  */
+/**
+ * A talk take held (`holdToTalk`): over the conversation, above the
+ * composer, its words as they are made out, its time and waveform (and
+ * the last seconds of `maxDuration`), what letting go does, and where
+ * the finger can go: Cancel and To text, the one under it lit, saying
+ * what letting go there does. Before the microphone has opened, that
+ * it is starting. Not a target of the finger's: where it is is read
+ * from them.
+ */
+function TalkOverlay({
+  voice,
+  starting,
+  cancelRef,
+  textRef,
+}: {
+  voice: VoiceSession | null
+  /** Said while the microphone opens. */
+  starting: string
+  cancelRef: React.RefObject<HTMLDivElement | null>
+  textRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const { voiceLevels } = useComposer()
+  const [editor] = useLexicalComposerContext()
+  const live = React.useSyncExternalStore(
+    voiceLevels.subscribe,
+    () => isLive(voiceLevels.get()),
+    () => isLive(voiceLevels.get())
+  )
+  // Over the composer's width, 8px above it, as the window has it.
+  const [place, setPlace] = React.useState<React.CSSProperties>({
+    visibility: "hidden",
+  })
+  React.useLayoutEffect(() => {
+    const measure = () => {
+      const box = editor
+        .getRootElement()
+        ?.closest("[data-slot=composer]")
+        ?.getBoundingClientRect()
+      if (!box) return
+      setPlace({
+        left: box.left,
+        width: box.width,
+        bottom: window.innerHeight - box.top + 8,
+      })
+    }
+    measure()
+    window.addEventListener("resize", measure)
+    window.visualViewport?.addEventListener("resize", measure)
+    return () => {
+      window.removeEventListener("resize", measure)
+      window.visualViewport?.removeEventListener("resize", measure)
+    }
+  }, [editor])
+  const targets = voice
+    ? ([
+        {
+          ref: cancelRef,
+          name: "cancel",
+          icon: Cancel01Icon,
+          label: voice.labels.cancel,
+          over: voice.labels.release,
+        },
+        {
+          ref: textRef,
+          name: "text",
+          icon: TextIcon,
+          label: voice.labels.toText,
+          over: voice.labels.releaseToText,
+        },
+      ] as const)
+    : []
+  // What letting go where the finger is does.
+  const action = voice
+    ? voice.target === "cancel"
+      ? voice.labels.release
+      : voice.target === "text"
+        ? voice.labels.releaseToText
+        : voice.labels.releaseToSend
+    : starting
+  return createPortal(
+    <div
+      data-slot="composer-talk-overlay"
+      style={place}
+      className="pointer-events-none fixed z-50 flex animate-in flex-col gap-2 rounded-composer bg-popover pb-4 text-popover-foreground shadow-float motion-pop fade-in-0 select-none [-webkit-touch-callout:none] slide-in-from-bottom-2 motion-reduce:animate-none"
+    >
+      {voice && live ? <VoiceWave voice={voice} /> : null}
+      <div className="flex min-h-11 items-center px-4 pt-3">
+        {voice ? (
+          <VoiceMeter voice={voice} />
+        ) : (
+          <Spinner aria-hidden="true" className="motion-reduce:animate-none" />
+        )}
+      </div>
+      <p
+        data-slot="composer-talk-action"
+        data-on-target={voice?.target ? "" : undefined}
+        aria-live="polite"
+        // On a target, the target says it: read, not shown twice.
+        className="px-4 text-center text-2sm text-muted-foreground data-on-target:opacity-0"
+      >
+        {action}
+      </p>
+      <div className="flex items-start justify-between px-4">
+        {targets.map((target) => {
+          const over = voice?.target === target.name
+          return (
+            <div
+              key={target.name}
+              ref={target.ref}
+              data-slot="composer-talk-target"
+              data-target={target.name}
+              data-over={over || undefined}
+              className="flex min-w-28 flex-col items-center gap-2 text-2sm whitespace-nowrap text-muted-foreground data-over:text-foreground"
+            >
+              <span
+                aria-hidden
+                className="grid size-14 place-items-center rounded-full bg-muted transition-colors in-data-over:bg-foreground in-data-over:text-background [&>svg]:size-5"
+              >
+                <HugeiconsIcon icon={target.icon} strokeWidth={2} />
+              </span>
+              {over ? target.over : target.label}
+            </div>
+          )
+        })}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 function VoiceWave({ voice }: { voice: VoiceSession }) {
   const { voiceLevels } = useComposer()
   const input = React.useSyncExternalStore(

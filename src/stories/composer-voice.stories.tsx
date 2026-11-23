@@ -1,4 +1,5 @@
 import * as React from "react"
+import { cn } from "cn"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import {
   expect,
@@ -91,6 +92,8 @@ function Demo({
   queue = false,
   ready = false,
   startDelay = 0,
+  holdToTalk = false,
+  atBottom = false,
   shortcut,
   name = "Message",
   failOnce = false,
@@ -133,7 +136,11 @@ function Demo({
   inputs?: ComposerVoiceInput[]
   /** The one chosen before, kept by the app. */
   defaultInput?: string
-  onSubmit?: (value: ComposerValue) => void
+  onSubmit?: (value: ComposerValue, options?: { talk: boolean }) => void
+  /** Whether a long press on the composer talks, on a touch screen. */
+  holdToTalk?: boolean
+  /** At the bottom of a conversation, as in an app. */
+  atBottom?: boolean
   onStart?: () => void
   onCancel?: () => void
   onInputChange?: (id: string) => void
@@ -145,10 +152,23 @@ function Demo({
   const words = recorder.state?.heard ?? 0
   const settled = Math.max(0, words - unsettled)
   return (
-    <div className="mx-auto w-full max-w-2xl p-4">
+    <div
+      className={cn(
+        "mx-auto w-full max-w-2xl p-4",
+        atBottom && "flex min-h-dvh flex-col justify-end gap-4"
+      )}
+    >
+      {atBottom ? (
+        <div className="flex flex-col gap-3 text-base leading-7">
+          <p>Can you rename the upload helper?</p>
+          <p className="text-muted-foreground">
+            Sure: which name, and should the tests move with it?
+          </p>
+        </div>
+      ) : null}
       <Composer
-        onSubmit={(value) => {
-          onSubmit?.(value)
+        onSubmit={(value, _event, options) => {
+          onSubmit?.(value, options)
           return true
         }}
       >
@@ -166,6 +186,7 @@ function Demo({
             submitOnFinish={submitOnFinish}
             shortcut={shortcut}
             ready={ready}
+            holdToTalk={holdToTalk}
             labels={shortcut ? { shortcut: "Hold Right ⌥ to talk" } : undefined}
             inputs={inputs}
             input={input}
@@ -992,5 +1013,328 @@ export const StartingLetGo: Story = {
     await expect(
       await screen.findByRole("button", { name: "Done" }, { timeout: 3000 })
     ).toHaveFocus()
+  },
+}
+
+const vibrate = fn()
+
+/** A phone's touch screen, its vibration recorded. */
+const onAPhoneScreen = {
+  ...onAPhone,
+  beforeEach: () => {
+    vibrate.mockClear()
+    const had = Object.getOwnPropertyDescriptor(navigator, "vibrate")
+    Object.defineProperty(navigator, "vibrate", {
+      configurable: true,
+      value: vibrate,
+    })
+    return () => {
+      if (had) Object.defineProperty(navigator, "vibrate", had)
+      else delete (navigator as { vibrate?: unknown }).vibrate
+    }
+  },
+}
+
+/** A finger on `target`, as a touch screen reports it. */
+function finger(
+  type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel",
+  target: EventTarget,
+  { x = 0, y = 0, id = 11, primary = true, pointerType = "touch" } = {}
+) {
+  const event = new PointerEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    pointerId: id,
+    pointerType,
+    isPrimary: primary,
+    clientX: x,
+    clientY: y,
+    button: type === "pointermove" ? -1 : 0,
+  })
+  target.dispatchEvent(event)
+  return event
+}
+
+/** The middle of `element`. */
+function middleOf(element: Element) {
+  const box = element.getBoundingClientRect()
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 }
+}
+
+/** The editor, shown or not. */
+const rootOf = () =>
+  document.querySelector<HTMLElement>("[data-lexical-editor]")!
+const overlayOf = () =>
+  document.querySelector<HTMLElement>("[data-slot=composer-talk-overlay]")
+const actionOf = () =>
+  document.querySelector<HTMLElement>("[data-slot=composer-talk-action]")
+const targetOf = (name: "cancel" | "text") =>
+  document.querySelector<HTMLElement>(
+    `[data-slot=composer-talk-target][data-target=${name}]`
+  )!
+/** The toolbar's background, beside its tools. */
+const toolbarOf = () =>
+  document.querySelector<HTMLElement>("[data-slot=composer-toolbar]")!
+/** A point on the toolbar's background, clear of its tools. */
+const toolbarSpot = () => {
+  const box = toolbarOf().getBoundingClientRect()
+  return { x: box.left + box.width / 2 - 40, y: box.top + box.height / 2 }
+}
+
+/** A finger held on `target` until its take is up. */
+async function longPress(
+  target: Element,
+  at: { x: number; y: number } = middleOf(target)
+) {
+  finger("pointerdown", target, at)
+  await waitFor(() => expect(targetOf("cancel")).toBeVisible())
+  return at
+}
+
+/**
+ * `holdToTalk`, on a phone with the keyboard down (the editor not
+ * focused): a long press anywhere on the composer, the editor too, talks
+ * (its text not selected meanwhile), a short vibration as it starts.
+ * Over the conversation, above the composer: its words, time and
+ * waveform, what letting go does, and where to slide to. Let go there,
+ * its words are sent alone, the draft kept, the keyboard left down.
+ */
+export const HoldToTalk: Story = {
+  ...onAPhoneScreen,
+  args: { holdToTalk: true, live: true, heard: 6, atBottom: true },
+  play: async ({ args }) => {
+    await userEvent.click(editorOf())
+    await userEvent.keyboard("Draft")
+    editorOf().blur()
+    const style = rootOf().style.cssText
+    const at = await longPress(rootOf())
+    await expect(vibrate).toHaveBeenCalledOnce()
+    await expect(getComputedStyle(rootOf()).userSelect).toBe("none")
+    await expect(actionOf()).toHaveTextContent("Release to send")
+    const box = document
+      .querySelector("[data-slot=composer]")!
+      .getBoundingClientRect()
+    await expect(overlayOf()!.getBoundingClientRect().bottom).toBeLessThan(
+      box.top
+    )
+    await expect(
+      await screen.findByText(/^Rename the upload helper/)
+    ).toBeVisible()
+    await wait(300)
+    finger("pointerup", window, at)
+    await waitFor(() =>
+      expect(args.onSubmit).toHaveBeenCalledWith(
+        [expect.stringMatching(/^Rename the upload helper/)],
+        expect.objectContaining({ talk: true })
+      )
+    )
+    await waitFor(() => expect(overlayOf()).toBeNull())
+    await expect(rootOf()).toHaveTextContent(/^Draft$/)
+    await expect(rootOf()).not.toHaveFocus()
+    await waitFor(() => expect(rootOf().style.cssText).toBe(style))
+  },
+}
+
+/**
+ * The editor focused (the keyboard up): a long press on its text is the
+ * platform's (select, the caret, paste), not a take; on the toolbar's
+ * background it talks, and after, the editor has the focus again.
+ */
+export const HoldToTalkTyping: Story = {
+  ...onAPhoneScreen,
+  args: { holdToTalk: true, live: true, heard: 6, atBottom: true },
+  play: async ({ args }) => {
+    await userEvent.click(editorOf())
+    await userEvent.keyboard("Draft")
+    const text = finger("pointerdown", rootOf(), middleOf(rootOf()))
+    await wait(700)
+    finger("pointerup", window, middleOf(rootOf()))
+    await expect(text.defaultPrevented).toBe(false)
+    await expect(args.onStart).not.toHaveBeenCalled()
+    await expect(overlayOf()).toBeNull()
+
+    const at = await longPress(toolbarOf(), toolbarSpot())
+    finger("pointerup", window, at)
+    await waitFor(() => expect(args.onSubmit).toHaveBeenCalled())
+    await waitFor(() => expect(rootOf()).toHaveFocus())
+    await expect(rootOf()).toHaveTextContent(/^Draft$/)
+  },
+}
+
+/**
+ * Slid onto To text and let go: its words go in at the caret (or the
+ * end), the editor focused to edit them before sending; nothing sent.
+ * Each target lit and saying what letting go there does as the finger
+ * comes on it, with a pulse.
+ */
+export const HoldToTalkToText: Story = {
+  ...onAPhoneScreen,
+  args: { holdToTalk: true, live: true, heard: 6, atBottom: true },
+  play: async ({ args }) => {
+    await userEvent.click(editorOf())
+    await userEvent.keyboard("Draft: ")
+    editorOf().blur()
+    await longPress(rootOf())
+    const cancel = middleOf(targetOf("cancel"))
+    finger("pointermove", window, cancel)
+    await waitFor(() => expect(targetOf("cancel")).toHaveAttribute("data-over"))
+    await expect(targetOf("cancel")).toHaveTextContent("Release to cancel")
+    await expect(actionOf()).toHaveTextContent("Release to cancel")
+    const text = middleOf(targetOf("text"))
+    finger("pointermove", window, text)
+    await waitFor(() => expect(targetOf("text")).toHaveAttribute("data-over"))
+    await expect(targetOf("cancel")).not.toHaveAttribute("data-over")
+    await expect(targetOf("text")).toHaveTextContent("Release to convert")
+    await expect(vibrate).toHaveBeenCalledTimes(3)
+    finger("pointerup", window, text)
+    await waitFor(() =>
+      expect(editorOf()).toHaveTextContent(/^Draft: Rename the upload helper/)
+    )
+    await caretAfter(/^Draft: Rename the upload helper/)
+    await expect(args.onSubmit).not.toHaveBeenCalled()
+  },
+}
+
+/** Slid onto Cancel and let go: dropped, nothing sent. */
+export const HoldToTalkCancel: Story = {
+  ...onAPhoneScreen,
+  tags: ["!autodocs"],
+  args: { holdToTalk: true, live: true, heard: 6, atBottom: true },
+  play: async ({ args }) => {
+    await longPress(toolbarOf(), toolbarSpot())
+    const cancel = middleOf(targetOf("cancel"))
+    finger("pointermove", window, cancel)
+    await waitFor(() => expect(targetOf("cancel")).toHaveAttribute("data-over"))
+    finger("pointerup", window, cancel)
+    await waitFor(() => expect(args.onCancel).toHaveBeenCalled())
+    await waitFor(() => expect(overlayOf()).toBeNull())
+    await expect(args.onSubmit).not.toHaveBeenCalled()
+  },
+}
+
+/**
+ * Not a long press: a tap (the editor's, as ever: nothing prevented), a
+ * finger that moves first (a scroll), a press on a control, a mouse.
+ */
+export const HoldToTalkNotAPress: Story = {
+  ...onAPhoneScreen,
+  tags: ["!autodocs"],
+  args: { holdToTalk: true, live: true, heard: 6, atBottom: true },
+  play: async ({ args }) => {
+    const at = middleOf(rootOf())
+    const down = finger("pointerdown", rootOf(), at)
+    await wait(100)
+    const up = finger("pointerup", window, at)
+    await expect([down.defaultPrevented, up.defaultPrevented]).toEqual([
+      false,
+      false,
+    ])
+    finger("pointerdown", rootOf(), at)
+    finger("pointermove", window, { ...at, y: at.y - 30 })
+    await wait(600)
+    finger("pointerup", window, { ...at, y: at.y - 30 })
+    const send = screen.getByRole("button", { name: "Send" })
+    finger("pointerdown", send, middleOf(send))
+    await wait(600)
+    finger("pointerup", window, middleOf(send))
+    finger("pointerdown", rootOf(), { ...at, pointerType: "mouse" })
+    await wait(600)
+    finger("pointerup", window, { ...at, pointerType: "mouse" })
+    await expect(args.onStart).not.toHaveBeenCalled()
+    await expect(overlayOf()).toBeNull()
+  },
+}
+
+/**
+ * What else ends a take held: a second finger and the touch cancelled
+ * (by the system) drop it; the page hidden puts its words in the text,
+ * not sent.
+ */
+export const HoldToTalkInterrupted: Story = {
+  ...onAPhoneScreen,
+  tags: ["!autodocs"],
+  args: { holdToTalk: true, live: true, heard: 6, atBottom: true },
+  play: async ({ args }) => {
+    let at = await longPress(toolbarOf(), toolbarSpot())
+    finger("pointerdown", toolbarOf(), { ...at, id: 12, primary: false })
+    await waitFor(() => expect(args.onCancel).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(overlayOf()).toBeNull())
+    finger("pointerup", window, at)
+
+    at = await longPress(toolbarOf(), toolbarSpot())
+    finger("pointercancel", window, at)
+    await waitFor(() => expect(args.onCancel).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(overlayOf()).toBeNull())
+
+    await longPress(toolbarOf(), toolbarSpot())
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    })
+    document.dispatchEvent(new Event("visibilitychange"))
+    delete (document as { visibilityState?: unknown }).visibilityState
+    await waitFor(() =>
+      expect(editorOf()).toHaveTextContent(/^Rename the upload helper/)
+    )
+    await expect(args.onSubmit).not.toHaveBeenCalled()
+  },
+}
+
+/**
+ * A microphone slow to open: over the conversation, that it is starting;
+ * let go before it opened, nothing is recorded or sent.
+ */
+export const HoldToTalkStarting: Story = {
+  ...onAPhoneScreen,
+  tags: ["!autodocs"],
+  args: { holdToTalk: true, startDelay: 800, atBottom: true },
+  play: async ({ args }) => {
+    const at = toolbarSpot()
+    finger("pointerdown", toolbarOf(), at)
+    await waitFor(() =>
+      expect(actionOf()).toHaveTextContent("Starting the microphone")
+    )
+    await expect(micOf()).toHaveAttribute("aria-busy", "true")
+    finger("pointerup", window, at)
+    await waitFor(() => expect(args.onCancel).toHaveBeenCalled(), {
+      timeout: 2000,
+    })
+    await expect(overlayOf()).toBeNull()
+    await expect(args.onSubmit).not.toHaveBeenCalled()
+  },
+}
+
+/** Its last seconds counted down over the conversation; at its end, sent. */
+export const HoldToTalkLimit: Story = {
+  ...onAPhoneScreen,
+  tags: ["!autodocs"],
+  args: {
+    holdToTalk: true,
+    maxDuration: 60,
+    duration: 53,
+    tick: 250,
+    atBottom: true,
+  },
+  play: async ({ args }) => {
+    await longPress(toolbarOf(), toolbarSpot())
+    await waitFor(() => expect(overlayOf()).toHaveTextContent(/\ds left/))
+    await waitFor(() => expect(args.onSubmit).toHaveBeenCalled(), {
+      timeout: 10_000,
+    })
+    await waitFor(() => expect(overlayOf()).toBeNull())
+  },
+}
+
+/** Without `holdToTalk`, a long press on the composer is the page's. */
+export const HoldToTalkOff: Story = {
+  ...onAPhoneScreen,
+  tags: ["!autodocs"],
+  args: { atBottom: true },
+  play: async ({ args }) => {
+    finger("pointerdown", rootOf(), middleOf(rootOf()))
+    await wait(700)
+    finger("pointerup", window, middleOf(rootOf()))
+    await expect(args.onStart).not.toHaveBeenCalled()
+    await expect(overlayOf()).toBeNull()
   },
 }

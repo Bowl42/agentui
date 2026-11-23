@@ -1774,6 +1774,33 @@ puts the words in the text at the caret, to edit before sending.
   one, on hover, always), so a press records at once, says so with
   `ready`: the idle mic's glyph in the text's colour, a status mark's
   dot at its corner, described as `labels.ready` ("Microphone ready").
+- `holdToTalk`: on a touch screen, a tap on the composer types (the
+  editor focused, the keyboard up, as ever) and a long press talks. A
+  finger held still for 400ms (before the platform's own long press)
+  starts a take, as a held mic does (starting, `ready`, live words and
+  levels alike), with a short vibration where the device has one. With
+  the keyboard down (the editor not focused), anywhere on the composer
+  counts, the editor too, its text not selected nor its callout opened
+  for that press; with the editor focused, its text keeps the
+  platform's long press (select, the caret, paste) and only the rest
+  (the toolbar's background, the box's padding) talks. Controls (a
+  button, a link, a chip) keep theirs. A finger that moves over 10px
+  before 400ms is a scroll; a mouse or pen is as before.
+
+  Held, over the conversation, above the composer, are its words, time
+  and waveform (and the last seconds of `maxDuration`), what letting go
+  does ("Release to send", `labels.releaseToSend`), and two targets to
+  slide to, Cancel and To text, the one under the finger lit and saying
+  what letting go there does ("Release to cancel", "Release to
+  convert"), a pulse on each. Let go on Cancel, the take is dropped; on
+  To text, its words go in at the caret (or the end), the editor
+  focused to edit them before sending; anywhere else, they are sent
+  alone, the draft kept (`onSubmit`'s `options.talk` is true, so a
+  controlled app keeps its `value`); the editor has the focus after
+  only if it had it before. At `maxDuration` it is sent. Escape cancels.
+  A second finger or the touch taken by the system drops it; the page
+  hidden or the window left puts its words in the text, not sent; let
+  go before the microphone opened, nothing is recorded.
 - However a take ends (Done, let go, sent, Cancel, Escape, at
   `maxDuration`, a failed one cancelled), the editor has the focus
   again, the caret after the words it put in or where it was, unless

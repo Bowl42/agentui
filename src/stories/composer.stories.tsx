@@ -751,6 +751,7 @@ export const FollowUpQueue: Story = {
     await expect(args.onSubmitOptions).toHaveBeenLastCalledWith({
       interrupt: false,
       followUp: "queue",
+      talk: false,
     })
     await user.click(canvas.getByRole("button", { name: "Stop" }))
     await waitFor(async () => {
@@ -796,6 +797,7 @@ export const FollowUpSteer: Story = {
     await expect(args.onSubmitOptions).toHaveBeenLastCalledWith({
       interrupt: false,
       followUp: "steer",
+      talk: false,
     })
   },
   render: (args) => (
@@ -821,6 +823,7 @@ export const FollowUpModifierClick: Story = {
     await expect(args.onSubmitOptions).toHaveBeenLastCalledWith({
       interrupt: true,
       followUp: "steer",
+      talk: false,
     })
     await expect(button).toHaveFocus()
     await user.click(editor)
@@ -828,6 +831,7 @@ export const FollowUpModifierClick: Story = {
     await expect(args.onSubmitOptions).toHaveBeenLastCalledWith({
       interrupt: true,
       followUp: "steer",
+      talk: false,
     })
     await user.click(editor)
     await type("Later")
@@ -835,6 +839,7 @@ export const FollowUpModifierClick: Story = {
     await expect(args.onSubmitOptions).toHaveBeenLastCalledWith({
       interrupt: false,
       followUp: "queue",
+      talk: false,
     })
     await expect(button).toHaveFocus()
   },
