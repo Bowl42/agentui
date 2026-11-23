@@ -1,4 +1,26 @@
 /**
+ * A rule's declarations as written: a shorthand with a `var()` in it
+ * (`padding-block: calc(var(--spacing) * 2)`) is read whole, as its
+ * longhands read empty until it is computed.
+ */
+function declarations(style: CSSStyleDeclaration) {
+  const found = new Map<string, string>()
+  for (let index = 0; index < style.length; index++) {
+    const name = style.item(index)
+    const value = style.getPropertyValue(name)
+    if (value) found.set(name, value)
+  }
+  for (const declaration of style.cssText.split(";")) {
+    const colon = declaration.indexOf(":")
+    if (colon < 0) continue
+    const name = declaration.slice(0, colon).trim()
+    const value = style.getPropertyValue(name)
+    if (value && !found.has(name)) found.set(name, value)
+  }
+  return found
+}
+
+/**
  * What `read` finds with `root` laid out as under a finger: the
  * declarations of the page's `(pointer: coarse)` rules (where their other
  * conditions, e.g. a width, hold) put inline on the elements they match,
@@ -21,10 +43,7 @@ export function asCoarse<T>(root: HTMLElement, read: () => T): T {
         continue
       }
       const own = found.get(element) ?? new Map<string, string>()
-      for (let index = 0; index < style.length; index++) {
-        const name = style.item(index)
-        own.set(name, style.getPropertyValue(name))
-      }
+      for (const [name, value] of declarations(style)) own.set(name, value)
       found.set(element, own)
     }
   }
@@ -32,7 +51,12 @@ export function asCoarse<T>(root: HTMLElement, read: () => T): T {
     for (const rule of Array.from(rules)) {
       if (rule instanceof CSSMediaRule) {
         const condition = rule.conditionText
-        if (condition.includes("pointer: coarse"))
+        // A finger's, or one for any pointer but a mouse's
+        // (`not-pointer-fine:`).
+        if (
+          condition.includes("pointer: coarse") ||
+          /^not\b.*pointer: fine/.test(condition)
+        )
           visit(rule.cssRules, true, parent)
         else if (
           !condition.includes("pointer: fine") &&

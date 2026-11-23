@@ -1,9 +1,11 @@
 import * as React from "react"
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { Decorator, Meta, StoryObj } from "@storybook/react-vite"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   AiBrain01Icon,
+  ComputerIcon,
   HourglassIcon,
+  LaptopIcon,
   SparklesIcon,
 } from "@hugeicons/core-free-icons"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
@@ -13,6 +15,7 @@ import {
   AgentAppSidebar,
   type AppSidebarProject,
 } from "@/components/agent-app/agent-app-sidebar"
+import { DirectionProvider } from "@/components/ui/direction"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { asCoarse } from "@/stories/touch"
 import { FoldProvider } from "@/hooks/use-fold"
@@ -501,4 +504,227 @@ export const MarkAtTheEnd: Story = {
     )
     await expect(mark).toBeVisible()
   },
+}
+
+const laptop = (
+  <HugeiconsIcon icon={LaptopIcon} strokeWidth={2} aria-label="On laptop" />
+)
+const desktop = (
+  <HugeiconsIcon icon={ComputerIcon} strokeWidth={2} aria-label="On desktop" />
+)
+
+/** Every kind of row, each with what its end can hold. */
+const mixed: AppSidebarProject[] = [
+  {
+    id: "web",
+    path: "~/code/web",
+    conversations: [
+      {
+        id: "ship",
+        title: "Ship the web app",
+        icon: claude,
+        status: "running",
+        mark: laptop,
+        children: [
+          {
+            id: "tests",
+            title: "Run the web tests",
+            icon: gpt,
+            status: "waiting",
+            mark: desktop,
+          },
+        ],
+      },
+      {
+        id: "docs",
+        title: "Write the docs",
+        icon: gpt,
+        detail: "linux-box",
+        status: "unread",
+        mark: desktop,
+      },
+      { id: "plain", title: "Plan the release", icon: claude, mark: laptop },
+    ],
+  },
+  {
+    id: "api",
+    path: "~/code/api",
+    conversations: [
+      {
+        id: "retry",
+        title: "Fix the retry",
+        icon: claude,
+        status: "running",
+        mark: laptop,
+        time: "2m",
+      },
+    ],
+  },
+  {
+    id: "app",
+    path: "~/code/app",
+    conversations: [
+      {
+        id: "sync",
+        title: "Review cache sync",
+        icon: gpt,
+        mark: desktop,
+        time: "40m",
+      },
+    ],
+  },
+]
+
+function MixedRows() {
+  return (
+    <FoldProvider>
+      <AgentApp
+        sidebar={
+          <AgentAppSidebar
+            header="Agent workspace"
+            layout="tree"
+            projects={mixed}
+            projectsOpen={{ api: false }}
+            current={{ conversation: "plain" }}
+            onSelect={fn()}
+            onNewConversation={fn()}
+            projectMenu={() => <DropdownMenuItem>Rename</DropdownMenuItem>}
+            conversationMenu={() => <DropdownMenuItem>Rename</DropdownMenuItem>}
+          />
+        }
+      >
+        <AgentAppHeader title="Plan the release" />
+      </AgentApp>
+    </FoldProvider>
+  )
+}
+
+/** A row's end items, each as its distance in from the row's end. */
+function rowEnds(row: HTMLElement, rtl: boolean) {
+  const box = row.getBoundingClientRect()
+  const inFrom = (element: Element | null | undefined) => {
+    if (!element) return undefined
+    const rect = element.getBoundingClientRect()
+    const centre = rect.left + rect.width / 2
+    return {
+      centre: rtl ? centre - box.left : box.right - centre,
+      middle: rect.top + rect.height / 2,
+      size: rect.width,
+    }
+  }
+  const actions = Array.from(
+    row.querySelectorAll<HTMLElement>(":scope > [data-sidebar=menu-action]")
+  )
+  const more = actions.find((action) => action.ariaLabel?.startsWith("More"))
+  const pencil = actions.find((action) => action !== more)
+  const link = row.querySelector(":scope > [data-sidebar=menu-button]")!
+  return {
+    more: inFrom(more?.querySelector("svg")),
+    second: inFrom(
+      pencil?.querySelector("svg") ??
+        link.querySelector("[data-slot=conversation-mark] svg")
+    ),
+    status: inFrom(link.querySelector("[data-slot=status-mark]")),
+  }
+}
+
+type Ends = ReturnType<typeof rowEnds>
+
+/**
+ * Each column's items at one distance and one size, within 1px; a row's
+ * items in the middle of one line.
+ */
+async function expectColumns(ends: Ends[]) {
+  for (const end of ends) {
+    const middles = [end.more, end.second, end.status].flatMap((item) =>
+      item ? [item.middle] : []
+    )
+    for (const middle of middles)
+      await expect(Math.abs(middle - middles[0]!)).toBeLessThanOrEqual(1)
+  }
+  for (const column of ["more", "second", "status"] as const) {
+    const items = ends.flatMap((end) => end[column] ?? [])
+    const first = items[0]!
+    for (const item of items) {
+      await expect(Math.abs(item.centre - first.centre)).toBeLessThanOrEqual(1)
+      await expect(item.size).toBe(first.size)
+    }
+  }
+}
+
+async function playColumns(rtl: boolean) {
+  const list = sidebar()
+  await list.findByRole("button", { name: /^Run the web tests/ })
+  const root = document.querySelector<HTMLElement>("[data-slot=sidebar]")!
+  const rows = Array.from(
+    root.querySelectorAll<HTMLElement>(
+      "[data-slot=project-row], li[data-slot=conversation]"
+    )
+  )
+  await expect(rows).toHaveLength(8)
+  // Under a finger: every row's buttons shown at once.
+  const coarse = asCoarse(root, () => rows.map((row) => rowEnds(row, rtl)))
+  await expectColumns(coarse)
+  // The project's new conversation and a conversation's mark: centred
+  // in the second column, 24px past the "…" one.
+  const second = coarse.flatMap((end) => end.second ?? [])
+  const more = coarse.flatMap((end) => end.more ?? [])
+  await expect(second).toHaveLength(8)
+  await expect(Math.round(second[0]!.centre - more[0]!.centre)).toBe(28)
+  // The closed project's spinner where its conversations' marks are.
+  await expect(coarse.filter((end) => end.status).length).toBe(4)
+  // Under the mouse, each row's buttons while focus is on it: the same,
+  // once its padding has followed them.
+  for (const [index, row] of rows.entries()) {
+    row
+      .querySelector<HTMLElement>(":scope > [data-sidebar=menu-button]")!
+      .focus()
+    await waitFor(() => {
+      const end = rowEnds(row, rtl)
+      for (const column of ["more", "second", "status"] as const) {
+        const at = coarse[index]![column]
+        expect(end[column]?.size).toBe(at?.size)
+        if (at)
+          expect(Math.abs(end[column]!.centre - at.centre)).toBeLessThanOrEqual(
+            1
+          )
+      }
+    })
+  }
+}
+
+/**
+ * Rows of each kind, with a menu each, a project's new conversation and
+ * conversations' marks (a child, two lines, a time): at their end, in
+ * shared columns 24px apart, the "…" button, then the project's new
+ * conversation or the conversation's mark centred where a second button
+ * would be, then the status marks (a closed project's spinner too), the
+ * glyphs of a column one size; under a finger, where they always show,
+ * and under the mouse, as they show on hover or focus.
+ */
+export const RowEndsInColumns: Story = {
+  render: () => <MixedRows />,
+  play: () => playColumns(false),
+}
+
+const rtl: Decorator = (Story) => {
+  React.useLayoutEffect(() => {
+    const root = document.documentElement
+    root.setAttribute("dir", "rtl")
+    return () => root.removeAttribute("dir")
+  }, [])
+  return (
+    <DirectionProvider direction="rtl">
+      <div dir="rtl">
+        <Story />
+      </div>
+    </DirectionProvider>
+  )
+}
+
+/** As `RowEndsInColumns`, right to left: the columns from the left. */
+export const RowEndsInColumnsRightToLeft: Story = {
+  render: () => <MixedRows />,
+  decorators: [rtl],
+  play: () => playColumns(true),
 }

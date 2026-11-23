@@ -406,18 +406,37 @@ const rowMeta = cn(
 const projectHead =
   "text-2sm font-medium text-muted-foreground hover:text-sidebar-foreground data-active:font-medium data-active:text-sidebar-foreground max-sm:text-sm"
 
-const metaRoom =
-  "group-has-data-[sidebar=menu-action]/menu-item:pr-2 group-has-data-[sidebar=menu-action]/menu-item:group-hover/menu-item:pr-8 group-has-data-[sidebar=menu-action]/menu-item:group-focus-within/menu-item:pr-8 group-has-data-[sidebar=menu-action]/menu-item:group-has-data-popup-open/menu-item:pr-8 group-has-data-[sidebar=menu-action]/menu-item:not-pointer-fine:pr-8"
+/**
+ * Room at a row's end, while its buttons show (on hover or focus, always
+ * on a touch screen), for what stands there, in columns shared by every
+ * kind of row, from the end: the "…" button (4px in, 24px), then a
+ * second 24px one 4px before it (a project's new conversation), where a
+ * conversation's 16px mark is centred, then the status marks 8px before
+ * that. `--row-end` is the room; at rest, the row's own 8px.
+ */
+const rowEnd = (shown: string) =>
+  cn(
+    "[--row-end:--spacing(2)] group-has-data-[sidebar=menu-action]/menu-item:pr-(--row-end) rtl:group-has-data-[sidebar=menu-action]/menu-item:pr-2 rtl:group-has-data-[sidebar=menu-action]/menu-item:pl-(--row-end)",
+    shown
+  )
+
+const metaRoom = rowEnd(
+  // grid: clear (the "…" button, 4px in and 24px, a 4px gap, then 4px so a 16px mark is centred where a second button would be)
+  "group-hover/menu-item:[--row-end:--spacing(9)] group-focus-within/menu-item:[--row-end:--spacing(9)] group-has-data-popup-open/menu-item:[--row-end:--spacing(9)] not-pointer-fine:[--row-end:--spacing(9)]"
+)
 
 /** As `metaRoom`, for a row with two buttons. */
-const twoActionsMeta =
-  // grid: clear (room for two 24px buttons and their gaps)
-  "group-has-data-[sidebar=menu-action]/menu-item:pr-2 group-has-data-[sidebar=menu-action]/menu-item:group-hover/menu-item:pr-15 group-has-data-[sidebar=menu-action]/menu-item:group-focus-within/menu-item:pr-15 group-has-data-[sidebar=menu-action]/menu-item:group-has-data-popup-open/menu-item:pr-15 group-has-data-[sidebar=menu-action]/menu-item:not-pointer-fine:pr-15"
+const twoActionsMeta = rowEnd(
+  // grid: clear (two 24px buttons, 4px in and 4px apart, and 4px before them)
+  "group-hover/menu-item:[--row-end:--spacing(15)] group-focus-within/menu-item:[--row-end:--spacing(15)] group-has-data-popup-open/menu-item:[--row-end:--spacing(15)] not-pointer-fine:[--row-end:--spacing(15)]"
+)
 
 /**
  * A row's button, shown on hover or focus, as shadcn's; always on a touch
- * screen, which cannot hover. `second`: left of another. Its place
- * past its 24px box is 44px on a touch screen.
+ * screen, which cannot hover. `second`: before another. Its place
+ * past its 24px box is 44px on a touch screen. In the middle of a
+ * row's first line, where its marks are: 12px down a phone's 44px row,
+ * 8px down a touch screen's 40px one from `sm`.
  */
 function RowAction({
   second,
@@ -428,8 +447,10 @@ function RowAction({
     <SidebarMenuAction
       showOnHover
       className={cn(
-        "touch-target w-6 peer-data-[size=default]/menu-button:top-1 aria-expanded:bg-muted max-sm:peer-data-[size=default]/menu-button:top-3 pointer-coarse:peer-data-[size=default]/menu-button:top-3",
-        second && "right-8",
+        "touch-target w-6 peer-data-[size=default]/menu-button:top-1 aria-expanded:bg-muted max-sm:peer-data-[size=default]/menu-button:top-3 pointer-coarse:peer-data-[size=default]/menu-button:top-3 sm:pointer-coarse:peer-data-[size=default]/menu-button:top-2",
+        // Its row's end, right to left too.
+        "rtl:right-auto rtl:left-1",
+        second && "right-8 rtl:left-8",
         className
       )}
       {...props}
