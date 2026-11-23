@@ -1766,6 +1766,10 @@ puts the words in the text at the caret, to edit before sending.
 - If `onFinish` rejects, the take is kept: the box says the words could
   not be made out, with Retry (`onFinish` again) and Cancel. Keep the
   audio until one of them.
+- However a take ends (Done, let go, sent, Cancel, Escape, at
+  `maxDuration`, a failed one cancelled), the editor has the focus
+  again, the caret after the words it put in or where it was, unless
+  the reader went elsewhere meanwhile.
 - A global shortcut to dictate from anywhere (a held key) is the app's;
   it can `click()` the mic, or focus it and let Space be held.
 - To choose what it records from (a reader whose default input is

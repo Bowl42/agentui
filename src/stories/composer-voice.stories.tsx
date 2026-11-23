@@ -12,6 +12,7 @@ import {
 
 import {
   Composer,
+  ComposerButton,
   ComposerEditor,
   ComposerSubmit,
   ComposerToolbar,
@@ -19,6 +20,13 @@ import {
   type ComposerValue,
   type ComposerVoiceInput,
 } from "@/components/composer"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Clock01Icon } from "@hugeicons/core-free-icons"
 import { onAPhone } from "@/stories/phone"
 import { coarseHitSize } from "@/stories/touch"
 
@@ -79,6 +87,7 @@ function Demo({
   tick = 200,
   startError,
   startPending = false,
+  queue = false,
   failOnce = false,
   maxDuration,
   submitOnFinish,
@@ -101,6 +110,8 @@ function Demo({
   startError?: string
   /** Whether a start is never answered, as a prompt left open. */
   startPending?: boolean
+  /** A tool after the mic with a tooltip, as a queue button. */
+  queue?: boolean
   /** Whether making out the words fails the first time. */
   failOnce?: boolean
   maxDuration?: number
@@ -168,6 +179,14 @@ function Demo({
               return live ? undefined : spoken.join(" ")
             }}
           />
+          {queue ? (
+            <Tooltip>
+              <TooltipTrigger render={<ComposerButton aria-label="Queue" />}>
+                <HugeiconsIcon icon={Clock01Icon} strokeWidth={2} />
+              </TooltipTrigger>
+              <TooltipContent>Queue</TooltipContent>
+            </Tooltip>
+          ) : null}
           <ComposerSubmit />
         </ComposerToolbar>
       </Composer>
@@ -192,6 +211,8 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const micOf = () => screen.getByRole("button", { name: "Voice input" })
+/** The tooltip open, if any. */
+const tooltipOf = () => document.querySelector("[data-slot=tooltip-content]")
 const editorOf = () => screen.getByRole("textbox", { name: "Message" })
 
 /** Presses the mic down and holds it, as a finger would. */
@@ -202,6 +223,29 @@ async function pressMic() {
   fireEvent.pointerDown(mic, { button: 0, pointerId: 7, clientX: x })
   await screen.findByText("Slide to cancel")
   return x
+}
+
+/**
+ * The editor has the focus again, the caret where the words went (or
+ * where it was): `before` the text before it, nothing after it.
+ */
+async function caretAfter(before: RegExp) {
+  // Shown again once the take is over.
+  const editor = await screen.findByRole("textbox", { name: "Message" })
+  await waitFor(() => expect(editor).toHaveFocus())
+  await waitFor(() => {
+    const selection = document.getSelection()!
+    expect(selection.isCollapsed).toBe(true)
+    expect(editor.contains(selection.anchorNode)).toBe(true)
+    const range = document.createRange()
+    range.selectNodeContents(editor)
+    const caret = selection.getRangeAt(0)
+    const after = range.cloneRange()
+    after.setStart(caret.startContainer, caret.startOffset)
+    range.setEnd(caret.startContainer, caret.startOffset)
+    expect(after.toString()).toBe("")
+    expect(range.toString()).toMatch(before)
+  })
 }
 
 /** Lets go of it after `held` ms, from `x`. */
@@ -230,6 +274,7 @@ export const Tapped: Story = {
     await waitFor(() =>
       expect(editorOf()).toHaveTextContent("Rename the upload helper")
     )
+    await caretAfter(/import it$/)
   },
 }
 
@@ -302,6 +347,9 @@ export const Held: Story = {
     await expect(screen.queryByRole("button", { name: "Done" })).toBeNull()
     await letGo(x, 400)
     await waitFor(() => expect(args.onSubmit).toHaveBeenCalled())
+    // Sent, the box empty: what is typed next starts a message.
+    await waitFor(() => expect(editorOf()).toHaveTextContent(/^$/))
+    await caretAfter(/^$/)
   },
 }
 
@@ -317,6 +365,7 @@ export const HeldSlidBack: Story = {
     await waitFor(() => expect(micOf()).toBeVisible())
     await expect(args.onCancel).toHaveBeenCalled()
     await expect(editorOf()).toHaveTextContent("")
+    await caretAfter(/^$/)
   },
 }
 
@@ -346,6 +395,7 @@ export const HeldSpace: Story = {
     await waitFor(() =>
       expect(editorOf()).toHaveTextContent("Rename the upload helper")
     )
+    await caretAfter(/import it$/)
   },
 }
 
@@ -359,6 +409,7 @@ export const Limit: Story = {
       () => expect(editorOf()).toHaveTextContent("Rename the upload helper"),
       { timeout: 10_000 }
     )
+    await caretAfter(/import it$/)
   },
 }
 
@@ -574,5 +625,94 @@ export const InputsWhileStarting: Story = {
   play: async () => {
     await userEvent.click(micOf())
     await waitFor(() => expect(chooserOf()).toBeDisabled())
+  },
+}
+
+/** Cancel, by its button: the editor again, as it was. */
+export const FocusAfterCancel: Story = {
+  tags: ["!autodocs"],
+  play: async () => {
+    await userEvent.click(editorOf())
+    await userEvent.keyboard("Note: ")
+    await userEvent.click(micOf())
+    await userEvent.click(await screen.findByRole("button", { name: "Cancel" }))
+    await caretAfter(/^Note: $/)
+  },
+}
+
+/** Escape while it records, tapped: dropped, the editor again. */
+export const FocusAfterEscape: Story = {
+  tags: ["!autodocs"],
+  play: async ({ args }) => {
+    await userEvent.click(micOf())
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Done" })).toHaveFocus()
+    )
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(args.onCancel).toHaveBeenCalled())
+    await caretAfter(/^$/)
+  },
+}
+
+/** Escape while held: dropped, the editor again when let go. */
+export const FocusAfterHeldEscape: Story = {
+  tags: ["!autodocs"],
+  args: { live: true, heard: 6 },
+  play: async ({ args }) => {
+    const x = await pressMic()
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(args.onCancel).toHaveBeenCalled())
+    await letGo(x, 0)
+    await caretAfter(/^$/)
+  },
+}
+
+/** The words not made out, then Cancel: the editor again. */
+export const FocusAfterFailure: Story = {
+  tags: ["!autodocs"],
+  args: { failOnce: true },
+  play: async () => {
+    await userEvent.click(micOf())
+    await userEvent.click(await screen.findByRole("button", { name: "Done" }))
+    await screen.findByRole("button", { name: "Retry" })
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }))
+    await caretAfter(/^$/)
+  },
+}
+
+/**
+ * A tool beside the mic with a tooltip: a take held by a pointer, let
+ * go, leaves the focus in the editor, not on the page or that tool, and
+ * no tooltip open.
+ */
+export const FocusBesideATool: Story = {
+  tags: ["!autodocs"],
+  args: { queue: true, live: true, heard: 6 },
+  play: async () => {
+    const x = await pressMic()
+    await letGo(x, 400)
+    await caretAfter(/^Rename the upload helper/)
+    // A while later, still none.
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    await expect(tooltipOf()).toBeNull()
+    await expect(editorOf()).toHaveFocus()
+  },
+}
+
+/** The same, held by Space: the focus was on the mic, hidden as it recorded. */
+export const FocusBesideAToolSpace: Story = {
+  tags: ["!autodocs"],
+  args: { queue: true, live: true, heard: 6 },
+  play: async () => {
+    const user = userEvent.setup()
+    micOf().focus()
+    await user.keyboard("[Space>]")
+    await screen.findByText("Slide to cancel")
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    await user.keyboard("[/Space]")
+    await caretAfter(/^Rename the upload helper/)
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    await expect(tooltipOf()).toBeNull()
+    await expect(editorOf()).toHaveFocus()
   },
 }

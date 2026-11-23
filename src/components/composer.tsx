@@ -2794,7 +2794,10 @@ function ComposerForm({
     voiceLevels,
     insertValue: (inserted) => {
       insert(inserted)
-      editor.focus()
+      // Hidden (a take's words going in as it ends), it takes the focus
+      // once shown (ComposerEditor): focused before, WebKit put the caret
+      // back at the start.
+      if (editor.getRootElement()?.getClientRects().length) editor.focus()
     },
     focus: () => editor.focus(),
     suggesting: suggesting > 0,
@@ -3522,6 +3525,53 @@ function ComposerEditor({
   const [overflowing, setOverflowing] = React.useState(false)
   useCompletion(composer.complete, composer.completeDelay)
   const completes = !!composer.complete
+
+  // A take over (Done, let go, sent, Cancel, Escape, at its longest):
+  // the editor, shown again, has the focus back, the caret after the
+  // words it put in or where it was. Not before: hidden while it
+  // recorded, it could not take it, and the focus fell to the page,
+  // where typing went nowhere (and, in WebKit, to a tool beside the mic,
+  // its tooltip left open). Not taken from elsewhere the reader went.
+  const recording = composer.voice !== null
+  const wasRecording = React.useRef(recording)
+  React.useLayoutEffect(() => {
+    const was = wasRecording.current
+    wasRecording.current = recording
+    if (!was || recording) return
+    const root = editor.getRootElement()
+    const active = document.activeElement
+    const box = root?.closest("[data-slot=composer]")
+    if (!root || (active && active !== document.body && !box?.contains(active)))
+      return
+    // The caret after the words, or where it was. What Lexical has yet
+    // to write first (the box cleared as the words were sent), so the
+    // page's caret read is its last.
+    editor.update(() => {}, { discrete: true })
+    const page = document.getSelection()
+    const kept =
+      page?.rangeCount && root.contains(page.anchorNode)
+        ? page.getRangeAt(0).cloneRange()
+        : null
+    // The page's caret, kept as the editor is focused: WebKit, focusing
+    // it, put the caret at its start (Lexical's focus() too, as it does
+    // not write a caret it already had).
+    if (page && kept) {
+      root.focus({ preventScroll: true })
+      page.removeAllRanges()
+      page.addRange(kept)
+      return
+    }
+    // None on the page: Lexical's, written, which focuses the editor.
+    editor.update(
+      () => {
+        const selection = $getSelection()
+        if (selection) selection.dirty = true
+        else $getRoot().selectEnd()
+      },
+      { discrete: true }
+    )
+    if (document.activeElement !== root) editor.focus()
+  }, [recording, editor])
 
   React.useEffect(() => {
     const unregister = [
@@ -6192,8 +6242,8 @@ function ComposerVoice({
   const actions = React.useMemo(() => {
     const end = () => {
       hold.current = null
+      // The editor takes the focus once shown again (ComposerEditor).
       commit(null)
-      latest.current.composer.focus()
     }
     const cancel = () => {
       latest.current.onCancel?.()
