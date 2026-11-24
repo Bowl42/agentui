@@ -23,6 +23,13 @@ import {
 } from "streamdown"
 
 import { CopyButton, type CopyData } from "@/components/copy-button"
+import {
+  defaultLongTextLabels,
+  LongRun,
+  longRun,
+  longRunPattern,
+  type LongTextLabels,
+} from "@/components/long-text"
 import { Button } from "@/components/ui/button"
 import {
   CodeBlock,
@@ -52,34 +59,36 @@ import {
 } from "@/components/ui/tooltip"
 import { useHighlightedCode } from "@/hooks/use-highlighted-code"
 
-type MarkdownLabels = CodeBlockLabels & {
-  /** The button that opens a code block whole, with `onOpenCode`. */
-  open: string
-  /** The toggle that wraps a code block's long lines. */
-  wrap: string
-  /** A diagram's name, to a screen reader. */
-  diagram: string
-  /** A formula wide enough to scroll, to a screen reader. */
-  formula: string
-  /** The toggle that shows a diagram's code in its place. */
-  diagramCode: string
-  /** Under a diagram's code when it could not be drawn. */
-  diagramFailed: string
-  /** A table's name in full screen. */
-  table: string
-  /** How large a table is: "12 rows · 3 columns". */
-  tableSize: (rows: number, columns: number) => string
-  /** The button that copies a table, for a spreadsheet or a document. */
-  tableCopy: string
-  tableCopied: string
-  tableCopyFailed: string
-  /** The button that shows a table full screen. */
-  tableFullScreen: string
-  /** Full screen's close button. */
-  close: string
-}
+type MarkdownLabels = CodeBlockLabels &
+  LongTextLabels & {
+    /** The button that opens a code block whole, with `onOpenCode`. */
+    open: string
+    /** The toggle that wraps a code block's long lines. */
+    wrap: string
+    /** A diagram's name, to a screen reader. */
+    diagram: string
+    /** A formula wide enough to scroll, to a screen reader. */
+    formula: string
+    /** The toggle that shows a diagram's code in its place. */
+    diagramCode: string
+    /** Under a diagram's code when it could not be drawn. */
+    diagramFailed: string
+    /** A table's name in full screen. */
+    table: string
+    /** How large a table is: "12 rows · 3 columns". */
+    tableSize: (rows: number, columns: number) => string
+    /** The button that copies a table, for a spreadsheet or a document. */
+    tableCopy: string
+    tableCopied: string
+    tableCopyFailed: string
+    /** The button that shows a table full screen. */
+    tableFullScreen: string
+    /** Full screen's close button. */
+    close: string
+  }
 
 const defaultLabels: MarkdownLabels = {
+  ...defaultLongTextLabels,
   more: "Show all",
   less: "Show less",
   lines: (lines) => `${lines} ${lines === 1 ? "line" : "lines"}`,
@@ -804,6 +813,67 @@ function rehypeKeepPunctuation() {
   }
 }
 
+/**
+ * Marks the answer's long runs (`LongRun`) for its `span` to fold: in
+ * its text, not in a code block (which scrolls, a line unbroken).
+ */
+const unfolded = new Set(["pre", "markdown-math", "math", "svg"])
+
+function rehypeLongRuns() {
+  return (tree: MarkdownNode) => walk(tree, false)
+  function walk(node: MarkdownNode, inLink: boolean) {
+    if (!node.children || unfolded.has(node.tagName ?? "")) return
+    const link = inLink || node.tagName === "a"
+    for (let index = 0; index < node.children.length; index++) {
+      const child = node.children[index]!
+      if (child.type === "element") {
+        if (child.properties?.dataSlot !== "markdown-long-run")
+          walk(child, link)
+        continue
+      }
+      const value = child.type === "text" ? (child.value ?? "") : ""
+      if (value.length <= longRun) continue
+      const parts: MarkdownNode[] = []
+      let at = 0
+      for (const match of value.matchAll(longRunPattern)) {
+        if (match.index > at)
+          parts.push({ type: "text", value: value.slice(at, match.index) })
+        parts.push({
+          type: "element",
+          tagName: "span",
+          properties: {
+            dataSlot: "markdown-long-run",
+            ...(link && { dataPlain: "" }),
+          },
+          children: [{ type: "text", value: match[0] }],
+        })
+        at = match.index + match[0].length
+      }
+      if (at === 0) continue
+      if (at < value.length)
+        parts.push({ type: "text", value: value.slice(at) })
+      node.children.splice(index, 1, ...parts)
+      index += parts.length - 1
+    }
+  }
+}
+
+/** A span of the answer's: a long run marked to fold, or as it is. */
+function MarkdownSpan(all: React.ComponentProps<"span"> & ExtraProps) {
+  const { children, ...props } = domProps(all)
+  const { labels } = React.useContext(MarkdownContext)
+  const own = props as Record<string, unknown>
+  if (own["data-slot"] === "markdown-long-run" && typeof children === "string")
+    return (
+      <LongRun
+        text={children}
+        plain={own["data-plain"] !== undefined}
+        labels={labels}
+      />
+    )
+  return <span {...props}>{children}</span>
+}
+
 /** Whether a link's words are its address, as an autolink's are. */
 const isAddress = (children: React.ReactNode, href: string | undefined) =>
   typeof children === "string" &&
@@ -1338,6 +1408,7 @@ const components: Components = {
   "markdown-math": MarkdownMath as React.ComponentType<
     Record<string, unknown> & ExtraProps
   >,
+  span: MarkdownSpan,
   ul: UnorderedList,
   ol: OrderedList,
   li: Item,
@@ -1540,6 +1611,7 @@ function Markdown({
         ] as typeof plugin
       }),
       rehypeKeepPunctuation,
+      rehypeLongRuns,
     ]
   }, [props.rehypePlugins, math, protocols])
   const merged = React.useMemo(() => ({ ...components, ...own }), [own])

@@ -1081,10 +1081,27 @@
       ]
     },
     {
+      "name": "long-text",
+      "type": "registry:component",
+      "title": "Long Text",
+      "description": "Text whose runs without a space (a long address, base64, a hash) are folded past 1,024 characters, so its layout stays bounded whatever the text: a browser lays such a run out as one word broken anywhere, in time that grows with its length (WebKit) or, kerned in the system font, with its square (Chromium: 256 KiB of one letter, 3s a layout). A folded run (LongRun) shows its first 512 characters, an ellipsis, a button for 16,384 more at a time (\"Show 261,632 more characters\") and one to copy it whole, and is not kerned; in a link, only its start. LongText folds a string's runs, for text shown as written (a sent message's, ComposerMessage); Markdown folds its own, not in code blocks. Words, however many, are as they were.",
+      "dependencies": [],
+      "registryDependencies": [
+        "Bowl42/agentui/button",
+        "Bowl42/agentui/copy-button"
+      ],
+      "files": [
+        {
+          "path": "src/components/long-text.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
       "name": "markdown",
       "type": "registry:component",
       "title": "Markdown",
-      "description": "An agent's Markdown, streamed or not: Streamdown's, at the rhythm of a conversation (16px text on 28px lines, as ChatGPT's and Claude's answers, about 85 characters to the conversation's column; blocks 12px apart; headings h1 22px, h2 18px, the rest the text's size in bold; list items close and hanging from their markers, headings a step above the text, tables with rules between rows only and numbers lined up, over each its size, a button copying it (an HTML table a spreadsheet or document pastes as one, and Markdown text) and one showing it full screen with its heading held at the top; in a message scroller (itself @container/message-scroller) a table wider than the text takes the room either side, centred, as wide as its columns need, at most the scroller less 56px each side (48 past a scrollbar) and 1152px; while it streams, whole rows only, each fading in (a row waits for its line's end, the heading row for its rule, so no pipes first and no columns shifting with each word), quotes a rule and muted text), its fenced code a CodeBlock with line numbers, its file name (```ts title=\"build.ts\") or language and a copy button and, with onOpenCode, a button that opens it whole, folded in its own card past 12 lines (`codeLines`, CodeBlock's `lines`), only those highlighted and rendered while folded, so a fence of thousands of lines costs a short one's. Footnotes are its sources: each mark a numbered tile, the notes a list under a rule with the site each links to. Its props are Streamdown's; the app's components replace these, e.g. links that open beside the conversation. With Streamdown's Mermaid plugin (plugins={{ mermaid }}, from @streamdown/mermaid, the app's dependency), ```mermaid blocks are diagrams in the theme's greys, light or dark, their code a toggle away; while they stream or if they cannot be drawn, their code shows. With Streamdown's math plugin (plugins={{ math }}, from @streamdown/math, the app's dependency with katex and its CSS), $$…$$ (and, with singleDollarTextMath, $…$) formulas render with KaTeX in the text's colour; while they stream or if KaTeX cannot read them their TeX shows as code, copying one copies its TeX, and a block formula wider than the lane scrolls, focusable. The app's CSS adds Streamdown's classes: @source \"../node_modules/streamdown/dist/*.js\". New blocks fade in (opacity, 600ms) while it streams (isAnimating), never when a finished message opens or with reduced motion. headingOffset sets the headings' aria-level below the page's, their size kept. A fenced code block whose lines are too long for it (they scroll, or wrap) has a wrap toggle in its header (labels.wrap), off by default; codeWrap starts its lines wrapped. Long words, paths and URLs wrap instead of widening the lane, inline code keeps its frame on every line, a chip keeps the punctuation after it on its line, table cells are capped at 24rem, wrapping and top-aligned (a table still wider scrolls, focusable to scroll by keyboard), and a numbered list's gutter grows with its widest number. A fenced block's code says its language (data-language), so a quote of it keeps its fence's. Its blocks are a flex column 12px apart, not block flow, so WebKit's selection shows their text only, as a list's, not a solid fill over the margins and line ends. linkIcon gives a link the app's icon for its site (e.g. a favicon), centred on the line in any script, apart from the text before it and kept with the link's words; a bare address breaks anywhere. linkProtocols allows an app's own link protocols (e.g. [\"vesper\"] for vesper://…), for it to render through components.a; the sanitizer is recognised by its function, so an app's own rehype-sanitize schema keeps them and the math attributes. A list's dot is centred on its first line at any line height.",
+      "description": "An agent's Markdown, streamed or not: Streamdown's, at the rhythm of a conversation (16px text on 28px lines, as ChatGPT's and Claude's answers, about 85 characters to the conversation's column; blocks 12px apart; headings h1 22px, h2 18px, the rest the text's size in bold; list items close and hanging from their markers, headings a step above the text, tables with rules between rows only and numbers lined up, over each its size, a button copying it (an HTML table a spreadsheet or document pastes as one, and Markdown text) and one showing it full screen with its heading held at the top; in a message scroller (itself @container/message-scroller) a table wider than the text takes the room either side, centred, as wide as its columns need, at most the scroller less 56px each side (48 past a scrollbar) and 1152px; while it streams, whole rows only, each fading in (a row waits for its line's end, the heading row for its rule, so no pipes first and no columns shifting with each word), quotes a rule and muted text), its fenced code a CodeBlock with line numbers, its file name (```ts title=\"build.ts\") or language and a copy button and, with onOpenCode, a button that opens it whole, folded in its own card past 12 lines (`codeLines`, CodeBlock's `lines`), only those highlighted and rendered while folded, so a fence of thousands of lines costs a short one's. Footnotes are its sources: each mark a numbered tile, the notes a list under a rule with the site each links to. Its props are Streamdown's; the app's components replace these, e.g. links that open beside the conversation. With Streamdown's Mermaid plugin (plugins={{ mermaid }}, from @streamdown/mermaid, the app's dependency), ```mermaid blocks are diagrams in the theme's greys, light or dark, their code a toggle away; while they stream or if they cannot be drawn, their code shows. With Streamdown's math plugin (plugins={{ math }}, from @streamdown/math, the app's dependency with katex and its CSS), $$…$$ (and, with singleDollarTextMath, $…$) formulas render with KaTeX in the text's colour; while they stream or if KaTeX cannot read them their TeX shows as code, copying one copies its TeX, and a block formula wider than the lane scrolls, focusable. The app's CSS adds Streamdown's classes: @source \"../node_modules/streamdown/dist/*.js\". New blocks fade in (opacity, 600ms) while it streams (isAnimating), never when a finished message opens or with reduced motion. headingOffset sets the headings' aria-level below the page's, their size kept. A fenced code block whose lines are too long for it (they scroll, or wrap) has a wrap toggle in its header (labels.wrap), off by default; codeWrap starts its lines wrapped. Long words, paths and URLs wrap instead of widening the lane, inline code keeps its frame on every line, a chip keeps the punctuation after it on its line, table cells are capped at 24rem, wrapping and top-aligned (a table still wider scrolls, focusable to scroll by keyboard), and a numbered list's gutter grows with its widest number. A fenced block's code says its language (data-language), so a quote of it keeps its fence's. Its blocks are a flex column 12px apart, not block flow, so WebKit's selection shows their text only, as a list's, not a solid fill over the margins and line ends. linkIcon gives a link the app's icon for its site (e.g. a favicon), centred on the line in any script, apart from the text before it and kept with the link's words; a bare address breaks anywhere. linkProtocols allows an app's own link protocols (e.g. [\"vesper\"] for vesper://…), for it to render through components.a; the sanitizer is recognised by its function, so an app's own rehype-sanitize schema keeps them and the math attributes. A list's dot is centred on its first line at any line height. A run of over 1,024 characters without a space (an address, base64, a hash) is folded (long-text), so a layout stays bounded whatever the answer.",
       "dependencies": [
         "cn",
         "streamdown@^2.7.1",
@@ -1097,7 +1114,8 @@
         "Bowl42/agentui/dialog",
         "Bowl42/agentui/tooltip",
         "Bowl42/agentui/code-block",
-        "Bowl42/agentui/use-highlighted-code"
+        "Bowl42/agentui/use-highlighted-code",
+        "Bowl42/agentui/long-text"
       ],
       "files": [
         {
@@ -1520,7 +1538,8 @@
         "Bowl42/agentui/input-group",
         "Bowl42/agentui/markdown",
         "Bowl42/agentui/tabs",
-        "Bowl42/agentui/attachment"
+        "Bowl42/agentui/attachment",
+        "Bowl42/agentui/long-text"
       ],
       "files": [
         {

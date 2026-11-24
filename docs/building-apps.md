@@ -2181,6 +2181,24 @@ shows where it is and gives the reader mute and end.
 - More buttons (captions on or off, a keyboard to type instead) are
   `VoiceModeButton`s, round, `pressed` for a toggle.
 
+### `long-text`
+
+A run of text without a space, a long address, base64, a hash, is laid
+out as one word broken anywhere, and its layout grows with it: in WebKit
+with its length, and in Chromium, kerned in the system font, with its
+square (256 KiB of one letter took 3s a layout, the page frozen).
+`Markdown` folds any run past 1,024 characters, not in code blocks:
+its first 512, an ellipsis, "Show 261,632 more characters" (16,384 more
+at a time) and a button to copy it whole; in a link, only its start.
+Text shown as written folds the same with `LongText`, as
+`ComposerMessage` does. Words, however many, are as they were.
+
+| 256 KiB, laid out again (ms) | Chromium | WebKit | Firefox |
+| ---------------------------- | -------- | ------ | ------- |
+| One letter, before           | 2963     | 558    | 5       |
+| Base64, before               | 17       | 762    | 30      |
+| Either, folded               | < 1      | < 1    | ≤ 1     |
+
 ### `copy-button`
 
 An icon button that copies a value, e.g. a reply.

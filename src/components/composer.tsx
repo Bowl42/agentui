@@ -109,6 +109,7 @@ import {
   AttachmentTrigger,
 } from "@/components/ui/attachment"
 import { Chip, ChipDetail } from "@/components/chip"
+import { LongText, type LongTextLabels } from "@/components/long-text"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   InputGroup,
@@ -619,10 +620,13 @@ function ComposerMessage({
   onOpen,
   renderMention,
   renderLinkIcon,
+  labels,
   className,
   ...props
 }: React.ComponentProps<"span"> & {
   value: ComposerValue
+  /** A long run's buttons' words (`LongText`), for other languages. */
+  labels?: Partial<LongTextLabels>
   onOpen?: (chip: ComposerMention | ComposerAttachment | ComposerQuote) => void
   renderMention?: (mention: ComposerMention) => React.ReactNode
   renderLinkIcon?: (link: ComposerLink) => React.ReactNode
@@ -637,7 +641,13 @@ function ComposerMessage({
       {...props}
     >
       {value.map((part, index) => {
-        if (typeof part === "string") return part
+        if (typeof part === "string")
+          // A long run without a space folded, its layout bounded.
+          return (
+            <LongText key={index} labels={labels}>
+              {part}
+            </LongText>
+          )
         const chip = (
           // On a bubble's tint: the page's colour.
           <ComposerChip

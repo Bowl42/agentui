@@ -129,6 +129,7 @@ Copied into your app as a starting point to edit.
 | `composer-select` | A choice of one from the composer's toolbar, such as a mode or an agent.                                                                                                             |
 | `model-picker`    | A model and how hard it thinks.                                                                                                                                                      |
 | `voice-mode`      | A spoken conversation with the agent: an orb that moves with the voice, captions, mute and end; a page of its own or a bar in the composer's place.                                  |
+| `long-text`       | Text with long runs without a space (an address, base64, a hash) folded, so its layout stays bounded.                                                                                |
 
 ### Viewers
 
