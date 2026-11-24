@@ -53,8 +53,10 @@ import {
   type EditorState,
   type ElementNode,
   type LexicalEditor,
+  type RangeSelection,
   type LexicalNode,
   type NodeKey,
+  type PointType,
   ParagraphNode,
   type SerializedLexicalNode,
   type Spread,
@@ -111,6 +113,7 @@ import {
   AttachmentTrigger,
 } from "@/components/ui/attachment"
 import { Chip, ChipDetail } from "@/components/chip"
+import { dictationSpaces } from "@/lib/dictation"
 import { LongText, type LongTextLabels } from "@/components/long-text"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
@@ -769,8 +772,13 @@ type ComposerContextValue = {
   completeDelay: number
   /** The recording's input levels, outside React's state: they change often. */
   voiceLevels: Store<VoiceInput>
-  /** Inserts at the caret, or at the end, and focuses. */
-  insertValue: (value: ComposerValue) => void
+  /** A take starts: where its words will go, kept. */
+  markTake: () => void
+  /**
+   * A take's words, where it started (else at the caret, or the end),
+   * spaced from the text beside them as they need, and focuses.
+   */
+  insertTake: (value: ComposerValue) => void
   focus: () => void
   /**
    * Whether a list of suggestions is open: Enter takes one, so the send
@@ -1318,6 +1326,150 @@ function $createNodes(value: ComposerValue) {
   }
   return nodes
 }
+
+/** A point of a selection, kept to be set again. */
+type KeptPoint = { key: NodeKey; offset: number; type: "text" | "element" }
+
+/**
+ * Where a take's words go: the selection as it started (they replace
+ * what it held), or the text's end where there was none.
+ */
+type TakePlace = { anchor: KeptPoint; focus: KeptPoint }
+
+const keptPoint = (point: PointType): KeptPoint => ({
+  key: point.key,
+  offset: point.offset,
+  type: point.type,
+})
+
+/** The end of the text, as a point. */
+function $endPoint(): KeptPoint {
+  const root = $getRoot()
+  const last = root.getLastDescendant()
+  if ($isTextNode(last))
+    return {
+      key: last.getKey(),
+      offset: last.getTextContentSize(),
+      type: "text",
+    }
+  if ($isElementNode(last))
+    return {
+      key: last.getKey(),
+      offset: last.getChildrenSize(),
+      type: "element",
+    }
+  const parent = last?.getParent()
+  if (last && parent)
+    return {
+      key: parent.getKey(),
+      offset: last.getIndexWithinParent() + 1,
+      type: "element",
+    }
+  return { key: root.getKey(), offset: root.getChildrenSize(), type: "element" }
+}
+
+/** Where a take starting now puts its words. */
+function $takePlace(): TakePlace {
+  const selection = $getSelection()
+  if ($isRangeSelection(selection)) {
+    const [start, end] = selection.isBackward()
+      ? [selection.focus, selection.anchor]
+      : [selection.anchor, selection.focus]
+    return { anchor: keptPoint(start), focus: keptPoint(end) }
+  }
+  const end = $endPoint()
+  return { anchor: end, focus: end }
+}
+
+/** Whether a kept point is still in the text, as it was. */
+function $pointHolds(point: KeptPoint) {
+  const node = $getNodeByKey(point.key)
+  if (point.type === "text")
+    return $isTextNode(node) && point.offset <= node.getTextContentSize()
+  return $isElementNode(node) && point.offset <= node.getChildrenSize()
+}
+
+/**
+ * Selects where a take's words go: where it started, if that is still
+ * in the text; else the caret, or the end.
+ */
+function $selectTake(place: TakePlace | null): RangeSelection {
+  if (place && $pointHolds(place.anchor) && $pointHolds(place.focus)) {
+    const selection = $createRangeSelection()
+    const { anchor, focus } = place
+    selection.anchor.set(anchor.key, anchor.offset, anchor.type)
+    selection.focus.set(focus.key, focus.offset, focus.type)
+    $setSelection(selection)
+    return selection
+  }
+  const current = $getSelection()
+  return $isRangeSelection(current) ? current : $getRoot().selectEnd()
+}
+
+/** The text's last character in `node`: "\n" a line, "￼" a chip. */
+function $lastCharOf(node: LexicalNode | null): string {
+  if (!node) return ""
+  if ($isTextNode(node)) return Array.from(node.getTextContent()).at(-1) ?? ""
+  if ($isLineBreakNode(node)) return "\n"
+  if ($isElementNode(node))
+    return node.isInline() ? $lastCharOf(node.getLastChild()) : "\n"
+  return "￼"
+}
+
+function $firstCharOf(node: LexicalNode | null): string {
+  if (!node) return ""
+  if ($isTextNode(node)) {
+    const code = node.getTextContent().codePointAt(0)
+    return code === undefined ? "" : String.fromCodePoint(code)
+  }
+  if ($isLineBreakNode(node)) return "\n"
+  if ($isElementNode(node))
+    return node.isInline() ? $firstCharOf(node.getFirstChild()) : "\n"
+  return "￼"
+}
+
+/** Beside the start or end of an element: a line before or after, or none. */
+function $outside(node: LexicalNode, side: "before" | "after"): string {
+  const sibling =
+    side === "before" ? node.getPreviousSibling() : node.getNextSibling()
+  if (sibling)
+    return side === "before" ? $lastCharOf(sibling) : $firstCharOf(sibling)
+  const parent = node.getParent()
+  if (!parent || $isRootOrShadowRoot(parent)) return ""
+  return $isElementNode(node) && !node.isInline() ? "" : $outside(parent, side)
+}
+
+/** The text's character just before a point, or after it. */
+function $charBeside(point: KeptPoint, side: "before" | "after"): string {
+  const node = $getNodeByKey(point.key)
+  if (!node) return ""
+  if ($isTextNode(node)) {
+    const text = node.getTextContent()
+    const part =
+      side === "before" ? text.slice(0, point.offset) : text.slice(point.offset)
+    const char =
+      side === "before"
+        ? (Array.from(part).at(-1) ?? "")
+        : part
+          ? String.fromCodePoint(part.codePointAt(0)!)
+          : ""
+    return char || $outside(node, side)
+  }
+  if (!$isElementNode(node)) return ""
+  const child = node.getChildAtIndex(
+    side === "before" ? point.offset - 1 : point.offset
+  )
+  if (child) return side === "before" ? $lastCharOf(child) : $firstCharOf(child)
+  if ($isRootOrShadowRoot(node)) return ""
+  // A block's start or end: the line before or after it.
+  return (side === "before" ? node.getPreviousSibling() : node.getNextSibling())
+    ? "\n"
+    : ""
+}
+
+/** A value's text, its chips as "￼", to space it by. */
+const textOfValue = (value: ComposerValue) =>
+  value.map((part) => (typeof part === "string" ? part : "￼")).join("")
 
 function $writeValue(value: ComposerValue) {
   const root = $getRoot().clear()
@@ -2271,6 +2423,49 @@ function ComposerForm({
     )
   }, [editor, setRecall])
 
+  // Where the take under way puts its words.
+  const takePlace = React.useRef<TakePlace | null>(null)
+  const markTake = React.useCallback(() => {
+    takePlace.current = editor.getEditorState().read($takePlace)
+  }, [editor])
+  /**
+   * A take's words where it started (or at the caret, or the end), a
+   * space on either side where they need one (`dictationSpaces`), the
+   * caret after them, before a space put after them.
+   */
+  const insertTake = React.useCallback(
+    (inserted: ComposerValue) => {
+      const place = takePlace.current
+      takePlace.current = null
+      editor.update(() => {
+        const selection = $selectTake(place)
+        const [start, end] = selection.isBackward()
+          ? [selection.focus, selection.anchor]
+          : [selection.anchor, selection.focus]
+        const { lead, trail } = dictationSpaces(
+          $charBeside(keptPoint(start), "before"),
+          textOfValue(inserted),
+          $charBeside(keptPoint(end), "after")
+        )
+        selection.insertNodes($createNodes([lead, ...inserted]))
+        if (!trail) return
+        // The space after the words, the caret before it.
+        const after = $getSelection()
+        if (!$isRangeSelection(after)) return
+        after.insertText(trail)
+        const caret = $getSelection()
+        if ($isRangeSelection(caret) && caret.isCollapsed()) {
+          const { key, offset, type } = caret.anchor
+          if (type === "text" && offset > 0) {
+            caret.anchor.set(key, offset - 1, "text")
+            caret.focus.set(key, offset - 1, "text")
+          }
+        }
+      })
+    },
+    [editor]
+  )
+
   /** Inserts at `at`, or at the caret, or at the end. */
   const insertInText = React.useCallback(
     (inserted: ComposerValue, at?: Range | null) => {
@@ -2865,8 +3060,9 @@ function ComposerForm({
     complete,
     completeDelay,
     voiceLevels,
-    insertValue: (inserted) => {
-      insert(inserted)
+    markTake,
+    insertTake: (inserted) => {
+      insertTake(inserted)
       // Hidden (a take's words going in as it ends), it takes the focus
       // once shown (ComposerEditor): focused before, WebKit put the caret
       // back at the start.
@@ -6258,8 +6454,10 @@ function liveText(input: VoiceInput) {
 /**
  * Voice input: the mic of the toolbar. It records through the app
  * (`onStart`) and on Done puts what `onFinish` makes of it, the
- * transcript, in the text at the caret, to edit before sending. Cancel
- * or Escape drops it (`onCancel`).
+ * transcript, in the text where the caret was as it started (over what
+ * was selected; with none, at the end), a space between it and the text
+ * beside it where the script needs one (`dictationSpaces`), to edit
+ * before sending. Cancel or Escape drops it (`onCancel`).
  *
  * While it records, the time and a waveform of the app's `levels` take
  * the text's place; given a live `transcript` (and its `interim` words,
@@ -6492,7 +6690,7 @@ function ComposerVoice({
             // In the text, at the caret or the end: the editor focused.
             if (talk === "text") latest.current.composer.focusAfterTalk()
             if (!words.length) return
-            latest.current.composer.insertValue(value)
+            latest.current.composer.insertTake(value)
             if (send && !talk)
               // Once the editor has the words.
               requestAnimationFrame(() =>
@@ -6541,6 +6739,8 @@ function ComposerVoice({
             latest.current.onCancel?.()
             return
           }
+          // Where its words will go: the caret now, or the end.
+          latest.current.composer.markTake()
           commit({
             startedAt: performance.now(),
             transcribing: false,

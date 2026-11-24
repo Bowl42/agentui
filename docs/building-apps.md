@@ -1735,7 +1735,9 @@ stays as it is.
 
 `ComposerVoice` is the toolbar's mic. The app records (`onStart`) and
 makes out the words (`onFinish`); the composer shows the recording and
-puts the words in the text at the caret, to edit before sending.
+puts the words in the text where the caret was as the take started
+(over what was selected; the end with no caret), to edit before
+sending.
 
 ```tsx
 <ComposerVoice
@@ -1761,6 +1763,15 @@ puts the words in the text at the caret, to edit before sending.
   the words do, as the text will be (16/24), the `interim` ones grey,
   the time and a smaller wave on the toolbar; Done keeps the words shown
   when `onFinish` returns nothing.
+- The words are spaced from the draft as a script needs: one space on
+  either side where the text beside them has none and both are letters
+  or digits of a script written with spaces (Latin, Cyrillic, Greek,
+  Hangul…), or the text before ends a sentence, a clause or a bracket
+  (". , ! ? ; :", ")"); none beside Chinese, Japanese or Thai, nor
+  before punctuation. "hello world" and "big" with the caret after
+  "hello" make "hello big world", the caret after "big". The rule is
+  `dictationSpaces` in `@/lib/dictation`, for an app that puts words in
+  its own text.
 - If `onStart` rejects, a line under the box says why, by the
   `getUserMedia` error's name: `NotAllowedError` (access off, where to
   allow it), `NotFoundError` (no microphone), anything else

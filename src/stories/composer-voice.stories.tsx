@@ -531,6 +531,105 @@ export const TranscriptionFailed: Story = {
   },
 }
 
+/** Types `text` in the editor, then moves the caret `left` back. */
+async function draft(text: string, left = 0) {
+  await userEvent.click(editorOf())
+  await userEvent.keyboard(text)
+  if (left) await userEvent.keyboard(`{ArrowLeft>${left}/}`)
+}
+
+/** The editor's text before the caret and after it, once focused again. */
+async function caretBetween(before: string, after: string) {
+  const editor = await screen.findByRole("textbox", { name: "Message" })
+  await waitFor(() => expect(editor).toHaveFocus())
+  await waitFor(() => {
+    const selection = document.getSelection()!
+    expect(selection.isCollapsed).toBe(true)
+    const caret = selection.getRangeAt(0)
+    const head = document.createRange()
+    head.selectNodeContents(editor)
+    const tail = head.cloneRange()
+    head.setEnd(caret.startContainer, caret.startOffset)
+    tail.setStart(caret.startContainer, caret.startOffset)
+    expect(head.toString()).toBe(before)
+    expect(tail.toString()).toBe(after)
+  })
+}
+
+/**
+ * The caret in the middle of the draft as the take starts: the words
+ * go there, a space on either side, the caret after them.
+ */
+export const LiveInTheMiddle: Story = {
+  args: { live: true, heard: 6, tick: 60_000 },
+  play: async () => {
+    await draft("hello world", 6)
+    await userEvent.click(micOf())
+    await userEvent.click(await screen.findByRole("button", { name: "Done" }))
+    await waitFor(() =>
+      expect(editorOf()).toHaveTextContent(
+        /^hello Rename the upload helper to sendFile world$/
+      )
+    )
+    await caretBetween("hello Rename the upload helper to sendFile", " world")
+  },
+}
+
+/** Text selected as the take starts: the words take its place. */
+export const LiveOverASelection: Story = {
+  tags: ["!autodocs"],
+  args: { live: true, heard: 6, tick: 60_000 },
+  play: async () => {
+    await draft("hello world")
+    // "world" selected, as a double click would.
+    const text = editorOf().querySelector("[data-lexical-text]")!.firstChild!
+    document.getSelection()!.setBaseAndExtent(text, 6, text, 11)
+    await waitFor(() =>
+      expect(document.getSelection()!.toString()).toBe("world")
+    )
+    await wait(50)
+    await userEvent.click(micOf())
+    await userEvent.click(await screen.findByRole("button", { name: "Done" }))
+    await caretAfter(/^hello Rename the upload helper to sendFile$/)
+  },
+}
+
+/**
+ * Japanese, written without spaces: the words go in beside it with
+ * none.
+ */
+export const LiveBesideJapanese: Story = {
+  tags: ["!autodocs"],
+  args: { live: true, heard: 6, tick: 60_000 },
+  play: async () => {
+    await draft("ファイル名を")
+    await userEvent.click(micOf())
+    await userEvent.click(await screen.findByRole("button", { name: "Done" }))
+    await caretAfter(/^ファイル名をRename the upload helper to sendFile$/)
+  },
+}
+
+/**
+ * Tapped with a draft, no live transcript: Done puts the words after
+ * it, a space between.
+ */
+export const TappedInADraft: Story = {
+  play: async () => {
+    await draft("hello world")
+    await userEvent.click(micOf())
+    await expect(
+      await screen.findByRole("status", { name: /^Recording 0:0/ })
+    ).toBeVisible()
+    await userEvent.click(screen.getByRole("button", { name: "Done" }))
+    await waitFor(() =>
+      expect(editorOf()).toHaveTextContent(
+        /^hello world Rename the upload helper/
+      )
+    )
+    await caretAfter(/^hello world Rename the upload helper.* import it$/)
+  },
+}
+
 /** Inputs as an app finds them, made up: one virtual, one silent. */
 const inputs: ComposerVoiceInput[] = [
   { id: "built-in", label: "Built-in microphone" },
