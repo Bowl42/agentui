@@ -8,6 +8,8 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Alert02Icon,
   ArrowDown01Icon,
+  PinIcon,
+  PinOffIcon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
   ArrowTurnBackwardIcon,
@@ -17,6 +19,7 @@ import {
   Settings01Icon,
 } from "@hugeicons/core-free-icons"
 
+import { Button } from "@/components/ui/button"
 import {
   ComposerSelect,
   ComposerSelectContent,
@@ -87,8 +90,13 @@ type ModelOption = {
    * on its second.
    */
   effortToggle?: boolean
-  /** It cannot be used now; as the conversation's, the trigger asks for another. */
+  /** It cannot be used now; as the conversation's, the trigger says so. */
   disabled?: boolean
+  /**
+   * Why it cannot be used now ("Not in your plan"): it is disabled, and
+   * this is said at its row's end, in its name too.
+   */
+  disabledReason?: string
   /**
    * Its part of its group, e.g. its family: "Claude Opus". A group's
    * models with one are listed under its name, in the order they first
@@ -239,6 +247,22 @@ type ModelPickerLabels = {
   customInput: string
   /** Closes the sheet it is in on a phone. */
   done: string
+  /** The trigger's model that cannot be used now: "Opus 4, not available". */
+  unavailableValue: (name: string) => string
+  /** Over the list, the chosen model gone from it or not usable now. */
+  valueGone: (name: string) => string
+  /** The list with no models at all (not a search's). */
+  none: string
+  /** The models could not be fetched (`error`): its Retry. */
+  retry: string
+  /** The button that keeps the chosen model (`onPinnedChange`). */
+  pin: string
+  /** The button that lets it follow its default again. */
+  unpin: string
+  /** While pinning or unpinning is saved. */
+  saving: string
+  /** Pinning or unpinning failed. */
+  saveFailed: string
 }
 
 const defaultLabels: ModelPickerLabels = {
@@ -271,6 +295,15 @@ const defaultLabels: ModelPickerLabels = {
   custom: (id) => `Use “${id}”`,
   customInput: "Another model's id",
   done: "Done",
+  unavailableValue: (name) => `${name}, not available`,
+  valueGone: (name) =>
+    `${name} is not available now. It stays chosen until you pick another.`,
+  none: "No models yet",
+  retry: "Retry",
+  pin: "Pin",
+  unpin: "Unpin",
+  saving: "Saving…",
+  saveFailed: "Couldn't save",
 }
 
 /** A group's own header, over its models, where it is shown. */
@@ -399,14 +432,18 @@ function ModelItem({
   return (
     <CommandItem
       value={`model:${model.id}`}
-      disabled={model.disabled ?? false}
+      disabled={(model.disabled ?? false) || model.disabledReason !== undefined}
       data-checked={model.id === value}
       onSelect={() => onSelect(model.id)}
       // 44px under a finger, as a suggestion's row.
       className="pointer-coarse:min-h-11"
     >
       <ModelLabel model={badge === group.label ? rest : model} query={query} />
-      <Detail reveal>{model.detail}</Detail>
+      {model.disabledReason !== undefined ? (
+        <Detail>{model.disabledReason}</Detail>
+      ) : (
+        <Detail reveal>{model.detail}</Detail>
+      )}
     </CommandItem>
   )
 }
@@ -782,6 +819,12 @@ function ModelPicker({
   groupLimit,
   searchFrom = 10,
   loading = false,
+  error,
+  onRetry,
+  valueLabel,
+  source,
+  pinned,
+  onPinnedChange,
   shortcut,
   triggerEnd,
   header,
@@ -870,6 +913,31 @@ function ModelPicker({
    */
   loading?: boolean
   /**
+   * Why the models could not be fetched: a row under the list says so,
+   * with a Retry (`onRetry`); what it has stays listed.
+   */
+  error?: React.ReactNode
+  onRetry?: () => void
+  /**
+   * The chosen model's name where it is not in the list (gone, or not
+   * fetched): shown, marked not available, and kept until the reader
+   * picks another; never replaced on its own.
+   */
+  valueLabel?: string
+  /**
+   * Where the chosen model comes from, in the app's words, under the
+   * list: "The project's default", "Pinned to this conversation".
+   */
+  source?: React.ReactNode
+  /** Whether the chosen model is kept, not following its default. */
+  pinned?: boolean
+  /**
+   * Pins or unpins it: a button by `source`. A promise says saving
+   * (`labels.saving`) until it settles; a rejection, that it failed,
+   * the button there to try again.
+   */
+  onPinnedChange?: (pinned: boolean) => void | Promise<unknown>
+  /**
    * At the end of its button, after the model's name: the app's, e.g. a
    * ring of the provider's quota. Not in the button's name, its label
    * (`labels.trigger`) is: say there what it shows.
@@ -943,7 +1011,24 @@ function ModelPicker({
           group.models.some((model) => model.id === value)
         )?.icon
       : undefined
-  const unavailable = value === null || selected?.disabled === true
+  // The chosen model gone from the list, or not usable now: kept, said.
+  const gone =
+    value !== null &&
+    (selected === undefined
+      ? !loading
+      : selected.disabled === true || selected.disabledReason !== undefined)
+  const goneName = valueLabel ?? selected?.label ?? value ?? ""
+  const unavailable = value === null || gone
+  const [pinSave, setPinSave] = React.useState<"saving" | "failed" | null>(null)
+  const pin = (next: boolean) => {
+    const result = onPinnedChange?.(next)
+    if (!(result instanceof Promise)) return
+    setPinSave("saving")
+    result.then(
+      () => setPinSave(null),
+      () => setPinSave("failed")
+    )
+  }
   // A model's thinking: its steps, the conversation's step or else its
   // default, and a step chosen for the conversation that it does not
   // have, by its name in any model that has it.
@@ -975,15 +1060,20 @@ function ModelPicker({
   const efforts = slider.steps
   const thinking =
     efforts.length > 0 && slider.current !== undefined && !!onEffortChange
-  const shown = unavailable
-    ? labels.unavailable
-    : [
-        // Its route's tag, which the trigger shows, in its name too.
-        [selected?.label ?? value, selected?.badge].filter(Boolean).join(" "),
-        currentEffort?.label,
-      ]
-        .filter(Boolean)
-        .join(" · ")
+  const shown =
+    value === null
+      ? labels.unavailable
+      : gone
+        ? labels.unavailableValue(goneName)
+        : [
+            // Its route's tag, which the trigger shows, in its name too.
+            [selected?.label ?? valueLabel ?? value, selected?.badge]
+              .filter(Boolean)
+              .join(" "),
+            currentEffort?.label,
+          ]
+            .filter(Boolean)
+            .join(" · ")
 
   const needle = query.trim().toLowerCase()
   const matches = needle
@@ -1266,6 +1356,16 @@ function ModelPicker({
             {header}
           </div>
         )}
+        {page.kind === "main" && gone && (
+          <p
+            data-slot="model-picker-gone"
+            // A line of the list's look, over it, its mark a warning's.
+            className="mx-2 mt-1 flex items-start gap-2 px-2 py-1 text-2sm text-muted-foreground [&>svg]:mt-0.5 [&>svg]:size-4 [&>svg]:shrink-0"
+          >
+            <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
+            {labels.valueGone(goneName)}
+          </p>
+        )}
         {subPage && (
           <PageHeader title={subPage.label} back={labels.back} onBack={back} />
         )}
@@ -1327,7 +1427,15 @@ function ModelPicker({
                 stepEffort(event.key === "ArrowRight" ? 1 : -1)
               }}
             >
-              {flat ? (
+              {flat && all.length === 0 && !busy && !error ? (
+                // No models at all: no list, as cmdk's empty state.
+                <p
+                  data-slot="model-picker-none"
+                  className="py-6 text-center text-sm"
+                >
+                  {labels.none}
+                </p>
+              ) : flat ? (
                 // Focus on the list itself, its highlight its active
                 // descendant; the keys move it, Enter chooses.
                 <CommandList
@@ -1544,7 +1652,11 @@ function ModelPicker({
                           !single && !mobile ? "max-h-none" : "max-h-80"
                         }
                       >
-                        {!busy && <CommandEmpty>{labels.empty}</CommandEmpty>}
+                        {!busy && !error && (
+                          <CommandEmpty>
+                            {all.length === 0 ? labels.none : labels.empty}
+                          </CommandEmpty>
+                        )}
                         {needle ? (
                           <>
                             {groups.map((group) => {
@@ -1705,6 +1817,11 @@ function ModelPicker({
                 edge, the counts and chevrons in one column). */}
             {((thinking && slider.current) ||
               busy ||
+              (error !== undefined && error !== null) ||
+              (page.kind === "main" &&
+                !needle &&
+                value !== null &&
+                (source !== undefined || onPinnedChange !== undefined)) ||
               (page.kind === "main" &&
                 !needle &&
                 (purposes.length > 0 ||
@@ -1746,6 +1863,60 @@ function ModelPicker({
                     {labels.loading}
                   </div>
                 )}
+                {!busy && error !== undefined && error !== null && (
+                  <div
+                    role="alert"
+                    data-slot="model-picker-error"
+                    className="mx-2 flex min-h-8 items-center gap-2 px-2 py-1 text-2sm text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0"
+                  >
+                    <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
+                    <span className="min-w-0 flex-1">{error}</span>
+                    {onRetry && (
+                      <Button variant="outline" size="xs" onClick={onRetry}>
+                        {labels.retry}
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {page.kind === "main" &&
+                  !needle &&
+                  value !== null &&
+                  (source !== undefined || onPinnedChange) && (
+                    <div
+                      data-slot="model-picker-source"
+                      // Where the chosen model comes from, and keeping it.
+                      className="mx-2 flex min-h-8 items-center gap-2 px-2 py-1 text-2sm text-muted-foreground"
+                    >
+                      <span className="min-w-0 flex-1">{source}</span>
+                      {pinSave === "saving" ? (
+                        <span
+                          role="status"
+                          className="flex items-center gap-1 text-xs"
+                        >
+                          <Spinner aria-hidden="true" className="size-3.5" />
+                          {labels.saving}
+                        </span>
+                      ) : pinSave === "failed" ? (
+                        <span role="alert" className="text-xs">
+                          {labels.saveFailed}
+                        </span>
+                      ) : null}
+                      {onPinnedChange && (
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          disabled={pinSave === "saving" || gone}
+                          onClick={() => pin(!pinned)}
+                        >
+                          <HugeiconsIcon
+                            icon={pinned ? PinOffIcon : PinIcon}
+                            strokeWidth={2}
+                          />
+                          {pinned ? labels.unpin : labels.pin}
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 {page.kind === "main" && !needle && (
                   <div className="px-2">
                     {purposes.length > 0 && (
@@ -1959,13 +2130,15 @@ function ModelPicker({
         {unavailable ? (
           <>
             <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
-            <ComposerSelectValue>{labels.unavailable}</ComposerSelectValue>
+            <ComposerSelectValue>
+              {value === null ? labels.unavailable : goneName}
+            </ComposerSelectValue>
           </>
         ) : (
           <>
             {selectedIcon}
             <ComposerSelectValue>
-              {selected?.label ?? value}
+              {selected?.label ?? valueLabel ?? value}
             </ComposerSelectValue>
             {selected?.badge && (
               // Its route: another key, another provider. The space

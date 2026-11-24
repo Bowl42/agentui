@@ -46,6 +46,9 @@ callbacks.
 | Images, video and recordings the agent or a tool made                                  | `media-gallery`; `media-viewer` to zoom, compare and mark beside; see Media below                                                                                                                                                                            |
 | A choice of an image's or video's size (1:1, 16:9, auto)                               | `ToggleGroup` or `Select` with `aspect-ratio-icon`, below                                                                                                                                                                                                    |
 | How much is used now: a session's tokens, a quota, storage; a quota chip               | `usage-meter` (a ring or bar, its breakdown in a popover); in a `Badge` for a chip, below                                                                                                                                                                    |
+| What a run cost, by unit, known or estimated                                           | `usage-summary`, below                                                                                                                                                                                                                                       |
+| Connections to services, read: their status, one's details                             | `connection`, below                                                                                                                                                                                                                                          |
+| Why a turn failed, its retries                                                         | `message-error`, below                                                                                                                                                                                                                                       |
 | Use over time: tokens, calls, runs by the hour or day                                  | shadcn's `Chart`: a `Card`, its range a `ToggleGroup`, stacked `Bar`s, `ChartTooltipContent`; see Charts below                                                                                                                                               |
 | Choosing many from a long list (models, tools), with a checkbox on each                | `Combobox` `inline` `multiple`, `ComboboxItem indicator="checkbox"`; see Choosing many below                                                                                                                                                                 |
 | Command palette, search                                                                | `Command` (`CommandDialog`); its query and highlight, kept across a remount too: see Searching with Command below                                                                                                                                            |
@@ -2030,6 +2033,19 @@ click chooses and closes, and the focus goes back to the trigger.
   first. Clear the search in the select's `onOpenChange` as it closes.
 - For two to four choices always in view, use a `ToggleGroup` instead.
 
+### `message-error`
+
+Why a turn failed and what comes next, where its answer would have
+gone. Its `status` is told by its mark and words: `waiting` (a clock and
+a countdown to `retry.at`), `retrying` (a spinner), `exhausted` ("Gave
+up after 5 attempts", from `retry.attempts`), `failed`, `cancelled`,
+`unknown` (no answer came: it may have gone through, so the reader checks
+before trying again). By default it is waiting while `retry.at` counts
+down, then retrying, else failed. Nothing is tried on its own: at the
+countdown's end it says it retries, and the app does, or the reader by
+"Retry now" (`onRetry`). `action` holds the app's buttons, one or
+several ("Check status", "Send again"); they wrap where narrow.
+
 ### `model-picker`
 
 Picks a conversation's model and how hard it thinks, from a trigger in
@@ -2132,6 +2148,23 @@ agent); without an icon, or without it, the trigger is as before.
   they are coming: "Refreshing models…" with a spinner, no empty panes,
   no "No models found".
 - Its text is `labels`, with English defaults.
+
+#### What cannot be used, and where the choice comes from
+
+- A model that cannot be used now has a `disabledReason` ("Not in your
+  plan"): it is disabled, and the reason is at its row's end, in its
+  name too.
+- A chosen model gone from the list (or disabled) stays chosen: the
+  trigger keeps its name (`valueLabel` when the list no longer has it)
+  with a warning, "Opus 4, not available", and a line over the list says
+  it stays until the reader picks another. Nothing replaces it.
+- `source` says where the chosen model comes from ("The project's
+  default"), under the list; with `onPinnedChange`, a Pin or Unpin
+  button by it. Return a promise to show "Saving…" until it settles; a
+  rejection says it failed, the button there to try again.
+- No models at all says "No models yet"; a search with none, "No models
+  found". `error` (with `onRetry`) is a row under the list with Retry;
+  what it has stays listed.
 
 ### `voice-mode`
 
@@ -2633,6 +2666,74 @@ greys; every word is the app's.
 
   To show its breakdown too, use `UsageMeterBreakdown` with the same
   words in its place; a chip that only says a number is a `Badge`.
+
+### `usage-summary`
+
+What a run used and cost, by unit. Amounts of different units (dollars,
+credits, searches) are never added: the app adds what it can, by unit,
+and passes each total. Each amount says how far it is to be trusted, in
+words: `estimated` (≈ and "Estimated"), `partial`, `unreconciled`,
+`unpriced` ("No price"); one not known (`value: null`) reads "Unknown",
+never 0.
+
+```tsx
+<UsageSummary
+  totals={[{ value: "$1.16", unit: "USD", completeness: "estimated" }]}
+  running={false} // "So far" while the run goes on
+  missing={["Web search"]} // used, with no price
+>
+  <UsageSummaryRows rows={rows} /> // label, value, unit, completeness, source,
+  reason
+</UsageSummary>
+```
+
+A row with a `source` or `reason` has a button that explains it, a
+popover, so touch reaches it too. `UsageSummaryRows` alone goes in an
+`AgentTurnInfo`'s `details`.
+
+### `connection`
+
+Connections to services, a model provider's or a tool server's, read,
+not managed: no editing, no secrets. A list beside one's details:
+
+```tsx
+<ConnectionList loading={loading} error={error} onRetry={refetch} empty={query && "No match"}>
+  {items.map((item) => (
+    <ConnectionListItem
+      key={item.id}
+      label={item.label}
+      status={item.enabled ? item.status : "disabled"} // available, rejected, unknown, disabled
+      checkedAt="2h ago"
+      stale={isOld(item.checkedAt)}
+      reason={item.reason}
+      selected={item.id === selectedId}
+      onSelect={() => select(item.id)}
+    />
+  ))}
+</ConnectionList>
+
+<ConnectionDetails state={selected ? "ready" : "none"}>
+  <ConnectionDetailsHeader label={…} status={…} checkedAt={…} reason={…} />
+  <ConnectionNotice title="Enter its key again" action={<Button render={<a href={guide} />}>How to</Button>} />
+  <ConnectionDetailsField label="Addresses">
+    <ConnectionTarget>{url}</ConnectionTarget>
+  </ConnectionDetailsField>
+  <ConnectionDetailsField label="Credential">
+    <ConnectionCredential>API key sk-…7f3a</ConnectionCredential>
+  </ConnectionDetailsField>
+</ConnectionDetails>
+```
+
+- A status is told by its mark's shape (a dot, a diamond, a ring, a
+  bar) and its word, never its colour alone; a check too old to go by
+  says "May be out of date".
+- A long name is one line in the list, whole in its details. An address
+  is one line too, with a button that shows it whole where it is cut
+  short, and one that copies it: pass only what is not secret.
+- `ConnectionCredential` shows the app's summary, already masked. There
+  is no way to show or enter a secret here.
+- Filtering and pages are the app's: an `Input` over the list and
+  `Pagination` under it. It fetches nothing.
 
 ### `code-viewer`
 

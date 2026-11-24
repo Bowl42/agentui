@@ -1505,9 +1505,13 @@
       "name": "message-error",
       "type": "registry:component",
       "title": "Message Error",
-      "description": "Why a turn failed and what comes next, where its answer would have gone: an outlined card in the page's greys, an alert's triangle, the reason in a line and, under it, what it means or, while the app waits to try again, a countdown to it and which attempt that is; \"Retry now\" or the app's own action (\"Continue\") at its end.",
+      "description": "Why a turn failed and what comes next, where its answer would have gone: an outlined card in the page's greys, an alert's triangle, the reason in a line and, under it, what it means or, while the app waits to try again, a countdown to it and which attempt that is; \"Retry now\" or the app's own action (\"Continue\") at its end. Its status, told by its mark and words, not a colour: waiting (a clock, the countdown), retrying (a spinner), exhausted (\"Gave up after 5 attempts\"), failed, cancelled, unknown (no answer: it may have gone through, check before trying again); several actions of the app's wrap at its end; nothing is tried on its own, the countdown's end only says it retries.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
-      "registryDependencies": ["Bowl42/agentui/alert", "Bowl42/agentui/button"],
+      "registryDependencies": [
+        "Bowl42/agentui/alert",
+        "Bowl42/agentui/button",
+        "Bowl42/agentui/spinner"
+      ],
       "files": [
         {
           "path": "src/components/message-error.tsx",
@@ -1597,7 +1601,7 @@
       "name": "model-picker",
       "type": "registry:component",
       "title": "Model Picker",
-      "description": "Picks a conversation's model and how hard it thinks, from a trigger in a composer's toolbar (a sheet from the bottom on a phone): the trigger says the model, its route's tag and its thinking step (\"Opus 5.5 · High\", \"deepseek-v4 OpenRouter\"), or asks to pick a model when there is none or it cannot be used. With several groups, a rail of them (each its icon and name, Recent first; a tablist) beside the list shows one group's models at a time, cut short at groupLimit with how many more; the chosen model's group is the one open; on a phone the rail is a row of tabs above the list. ← from an empty search goes to the rail, ↑↓ there change group, → or typing goes back to the search (mirrored right to left). A single group's models are listed directly under its name, recent models only while groupLimit cuts it short. Typing searches them all, under their groups' names, \"3 of 49\" at the search's end. The thinking steps are one row, its name, a slider of named steps, the chosen step's name and, off the model's default, a button back to it (EffortSlider: a dot for each, a grey fill, a note or a warning under it); a model's row is its name and tick, its detail on the highlighted row; with few models (searchFrom, 10) one list under the groups' names, no search or rail; Manage models the last row, the shortcut in the trigger's tooltip; every row 32px, the list and rail as tall as the taller of the rail and the shown group's list, the popover's bottom kept as the group changes that follows the model, a switch for a model that only turns thinking on or off, ←→ from the list with one group; a step the model lacks runs at its default and says so. A last row turns the popover to the models for images, video and speech, each a page with its settings for the conversation as rows. A purpose with no models says so (labels.purposeEmpty) over the app's next step (its empty). Every row is a row's height, Manage models too; a model's name is never cut for its details, which take the rest of the row and are cut first. Extra content (children) shows only when there is some: a set of conditions all false leaves no empty band. A group is the app's: a provider or a family. Models, groups, steps and purposes are the app's data. With showGroupIcon, the trigger shows the chosen model's group's icon before its name. A group's own header (groups[].header) over its models while they are shown: its tab's pane, or under its heading in a list of all; not in a search's results. A section's heading in the rail may have a mark (its first group's sectionIcon). A model's section (a family) lists a group's models in runs under a heading each, after those with none; a search by group alone. customInput (with onCustomModel) keeps a field at the list's bottom, sticky in the pane, for a model id not listed, Enter giving it to onCustomModel, which is told where the id was typed (onCustomModel(id, { group, page }): the pane's group, none in a search across groups; the page, none for the main one). pages are rows under the list opening pages of further groups (rail, search) under a back header, Back or Escape returning; their models picked as any; onPageChange(id | null) says one opened or was left (e.g. to fetch its groups), and a page's loading shows the spinner row in place of empty panes.",
+      "description": "Picks a conversation's model and how hard it thinks, from a trigger in a composer's toolbar (a sheet from the bottom on a phone): the trigger says the model, its route's tag and its thinking step (\"Opus 5.5 · High\", \"deepseek-v4 OpenRouter\"), or asks to pick a model when there is none or it cannot be used. With several groups, a rail of them (each its icon and name, Recent first; a tablist) beside the list shows one group's models at a time, cut short at groupLimit with how many more; the chosen model's group is the one open; on a phone the rail is a row of tabs above the list. ← from an empty search goes to the rail, ↑↓ there change group, → or typing goes back to the search (mirrored right to left). A single group's models are listed directly under its name, recent models only while groupLimit cuts it short. Typing searches them all, under their groups' names, \"3 of 49\" at the search's end. The thinking steps are one row, its name, a slider of named steps, the chosen step's name and, off the model's default, a button back to it (EffortSlider: a dot for each, a grey fill, a note or a warning under it); a model's row is its name and tick, its detail on the highlighted row; with few models (searchFrom, 10) one list under the groups' names, no search or rail; Manage models the last row, the shortcut in the trigger's tooltip; every row 32px, the list and rail as tall as the taller of the rail and the shown group's list, the popover's bottom kept as the group changes that follows the model, a switch for a model that only turns thinking on or off, ←→ from the list with one group; a step the model lacks runs at its default and says so. A last row turns the popover to the models for images, video and speech, each a page with its settings for the conversation as rows. A purpose with no models says so (labels.purposeEmpty) over the app's next step (its empty). Every row is a row's height, Manage models too; a model's name is never cut for its details, which take the rest of the row and are cut first. Extra content (children) shows only when there is some: a set of conditions all false leaves no empty band. A group is the app's: a provider or a family. Models, groups, steps and purposes are the app's data. With showGroupIcon, the trigger shows the chosen model's group's icon before its name. A group's own header (groups[].header) over its models while they are shown: its tab's pane, or under its heading in a list of all; not in a search's results. A section's heading in the rail may have a mark (its first group's sectionIcon). A model's section (a family) lists a group's models in runs under a heading each, after those with none; a search by group alone. customInput (with onCustomModel) keeps a field at the list's bottom, sticky in the pane, for a model id not listed, Enter giving it to onCustomModel, which is told where the id was typed (onCustomModel(id, { group, page }): the pane's group, none in a search across groups; the page, none for the main one). pages are rows under the list opening pages of further groups (rail, search) under a back header, Back or Escape returning; their models picked as any; onPageChange(id | null) says one opened or was left (e.g. to fetch its groups), and a page's loading shows the spinner row in place of empty panes. A model's disabledReason says why it cannot be used, at its row's end and in its name. A chosen model gone from the list or not usable (valueLabel for its name) stays chosen, the trigger its name with a warning (\"Opus 4, not available\") and a line over the list saying so; nothing replaces it. source says where the chosen model comes from under the list, with Pin or Unpin (pinned, onPinnedChange; a promise shows saving, a rejection that it failed). No models at all is \"No models yet\", a search's none \"No models found\"; error with onRetry, a row saying why, with Retry.",
       "dependencies": [
         "@base-ui/react",
         "cn",
@@ -1616,7 +1620,8 @@
         "Bowl42/agentui/switch",
         "Bowl42/agentui/tabs",
         "Bowl42/agentui/use-mobile",
-        "Bowl42/agentui/tooltip"
+        "Bowl42/agentui/tooltip",
+        "Bowl42/agentui/button"
       ],
       "files": [
         {
@@ -1788,6 +1793,41 @@
       "files": [
         {
           "path": "src/components/usage-meter.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "usage-summary",
+      "type": "registry:component",
+      "title": "Usage Summary",
+      "description": "What a run used and what it cost, by unit, never added across units: a button of its totals (UsageAmount: the app's formatted value, its unit, its completeness), each saying how far it is to be trusted in words, not a colour (≈ and Estimated, Partial, Not reconciled, No price; not known is \"Unknown\", never 0); \"So far\" while it runs; opened, its breakdown (UsageSummaryRows: a row's label, amount and completeness, a button to its source and why, a popover, by touch too) and what has no price (missing). UsageSummaryRows alone goes in an AgentTurnInfo's details. The app adds the amounts, by unit; it fetches nothing.",
+      "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
+      "registryDependencies": [
+        "Bowl42/agentui/button",
+        "Bowl42/agentui/popover"
+      ],
+      "files": [
+        {
+          "path": "src/components/usage-summary.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "connection",
+      "type": "registry:component",
+      "title": "Connection",
+      "description": "Connections to services (a model provider's, a tool server's), read, never managed. ConnectionList of ConnectionListItem: a row a connection, its name cut to a line and its status under it, a button that shows it (aria-current while shown); loading, its rows' shapes; none, labels.empty or the app's empty (a filter's \"No match\"); not fetched (error), why and Retry. Filtering and pages are the app's around it. ConnectionStatus: available, rejected, unknown or off, told by its mark's shape (a dot, a diamond, a ring, a bar) and its word, when it was checked and, too old to go by, \"May be out of date\"; why under it. ConnectionDetails (none chosen, loading, unavailable, or its parts): ConnectionDetailsHeader (its name whole and its status), ConnectionNotice (what needs the reader, e.g. to enter its key again, and the app's link to how), ConnectionDetailsField, ConnectionTarget (an address in mono on a line, a button showing it whole where it is cut short, one copying it) and ConnectionCredential (the app's masked summary, with a lock: no way to show or enter it).",
+      "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
+      "registryDependencies": [
+        "Bowl42/agentui/button",
+        "Bowl42/agentui/copy-button",
+        "skeleton"
+      ],
+      "files": [
+        {
+          "path": "src/components/connection.tsx",
           "type": "registry:component"
         }
       ]

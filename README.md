@@ -104,7 +104,7 @@ Copied into your app as a starting point to edit.
 | `tool-call-data`                | A tool call's input or output, for a tool the app has no view of its own for.                         |
 | `plan-card`                     | A proposed plan to revise or implement.                                                               |
 | `todo-list`                     | An agent's to-do list: how many are done and which item is in progress.                               |
-| `message-error`                 | Why a turn failed and what to do next.                                                                |
+| `message-error`                 | Why a turn failed, where it is (waiting, retrying, given up, unknown) and what to do next.            |
 | `message-divider`               | An event between messages: a day, the context compacted, the model switched.                          |
 | `message-outline`               | A long answer's outline, beside it or in a button at its top.                                         |
 | `message-reader`                | A message read on its own, over the conversation, with its outline and search.                        |
@@ -150,20 +150,22 @@ For a side panel, or over the whole window.
 
 ### Other components
 
-| Item                | What it is                                                          |
-| ------------------- | ------------------------------------------------------------------- |
-| `auth-page`         | A sign-in or sign-up page around the app's form.                    |
-| `copy-button`       | An icon button that copies a value and says so.                     |
-| `floating-button`   | A round button floating over content, e.g. jump to end.             |
-| `status-mark`       | A status as a small mark: a dot, ring or diamond, or a spinner.     |
-| `usage-meter`       | How much is used, as a ring or a bar.                               |
-| `stat`              | Headline numbers and facts of a page.                               |
-| `code-readout`      | A short code to type elsewhere, such as a one-time code.            |
-| `qr-code`           | A string as an SVG QR code.                                         |
-| `search-highlight`  | A search's terms highlighted in text, as a reader would match them. |
-| `aspect-ratio-icon` | An aspect ratio drawn as an icon.                                   |
-| `virtual-list`      | A list of thousands of items that renders only those in view.       |
-| `virtual-grid`      | The same for a grid or masonry.                                     |
+| Item                | What it is                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| `auth-page`         | A sign-in or sign-up page around the app's form.                                   |
+| `copy-button`       | An icon button that copies a value and says so.                                    |
+| `floating-button`   | A round button floating over content, e.g. jump to end.                            |
+| `status-mark`       | A status as a small mark: a dot, ring or diamond, or a spinner.                    |
+| `usage-meter`       | How much is used, as a ring or a bar.                                              |
+| `usage-summary`     | What a run used and cost, by unit, each amount saying how far it is to be trusted. |
+| `connection`        | Connections to services, read: a list of their status and one's details.           |
+| `stat`              | Headline numbers and facts of a page.                                              |
+| `code-readout`      | A short code to type elsewhere, such as a one-time code.                           |
+| `qr-code`           | A string as an SVG QR code.                                                        |
+| `search-highlight`  | A search's terms highlighted in text, as a reader would match them.                |
+| `aspect-ratio-icon` | An aspect ratio drawn as an icon.                                                  |
+| `virtual-list`      | A list of thousands of items that renders only those in view.                      |
+| `virtual-grid`      | The same for a grid or masonry.                                                    |
 
 ### Hooks and helpers
 
