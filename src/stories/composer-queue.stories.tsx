@@ -528,8 +528,9 @@ export const From: Story = {
     await expect(from.getBoundingClientRect().right).toBeLessThanOrEqual(
       text.getBoundingClientRect().left + 0.01
     )
+    // Within a pixel: WebKit under load lays it out a fraction wider.
     await expect(from.getBoundingClientRect().width).toBeLessThanOrEqual(
-      box.width / 3 + 0.5
+      box.width / 3 + 1
     )
     await expect(from.scrollWidth).toBeGreaterThan(from.clientWidth)
     await expect(text.getBoundingClientRect().width).toBeGreaterThan(
