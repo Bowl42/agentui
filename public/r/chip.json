@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "chip",
+  "title": "Chip",
+  "description": "A chip's look, once for every chip: a file, an image, a link, a quote or a mention in a line of text, 24px tall, its icon or thumbnail first, then its name and a grey detail, on a hairline; muted on a field (the composer's; in dark, the page's colour, recessed in it), raised on a tint (a sent message's bubble), outline on the page (12px, grey, e.g. an answer's sources) and 26px (md) in a row of its own. Chip is a span of it, chipVariants the classes for a button or link, ChipList a wrapping row of them.",
+  "dependencies": [
+    "cn",
+    "class-variance-authority"
+  ],
+  "files": [
+    {
+      "path": "src/components/chip.tsx",
+      "content": "import * as React from \"react\"\nimport { cva, type VariantProps } from \"class-variance-authority\"\nimport { cn } from \"cn\"\n\n/**\n * A chip's look: a file, an image, a link or a mention in a line of text,\n * 24px tall, its icon or thumbnail (an `img`) first, then its name, on a\n * hairline. `muted` on a field, e.g. the composer's (in dark, the page's\n * colour, recessed in the lighter field); `raised`, the page's colour, on\n * a tint, e.g. a sent message's bubble; `outline`, on the\n * page with a hairline in grey, 12px, e.g. an answer's sources. `md`,\n * 28px, a row of its own under the text.\n */\nconst chipVariants = cva(\n  \"inline-flex h-6 max-w-64 min-w-0 items-center gap-1 overflow-hidden rounded-md ps-2 pe-2 text-2sm leading-6 font-normal whitespace-nowrap text-foreground inset-ring inset-ring-border has-[>img:first-child]:ps-1 [&_img]:size-4 [&_img]:shrink-0 [&_img]:rounded-xs [&_img]:object-cover [&_svg]:size-3.5 [&_svg]:shrink-0 [&_svg]:text-muted-foreground\",\n  {\n    variants: {\n      variant: {\n        muted: \"bg-muted dark:bg-background dark:inset-ring-foreground/15\",\n        raised: \"bg-background\",\n        outline:\n          \"text-xs text-muted-foreground hover:text-foreground [a]:hover:bg-muted/60\",\n      },\n      size: {\n        default: \"\",\n        md: \"h-7 ps-2 pe-3 leading-7\",\n      },\n    },\n    defaultVariants: { variant: \"muted\", size: \"default\" },\n  }\n)\n\n/** A chip: `chipVariants` on a span, e.g. a mention in a sent message. */\nfunction Chip({\n  variant,\n  size,\n  className,\n  ...props\n}: React.ComponentProps<\"span\"> & VariantProps<typeof chipVariants>) {\n  return (\n    <span\n      data-slot=\"chip\"\n      data-variant={variant ?? \"muted\"}\n      data-size={size ?? \"default\"}\n      className={cn(chipVariants({ variant, size }), className)}\n      {...props}\n    />\n  )\n}\n\n/**\n * What follows a chip's name, smaller and grey: \"12 pages\", a host. Cut\n * short first when the chip has no room, so a long one does not take the\n * name's.\n */\nfunction ChipDetail({ className, ...props }: React.ComponentProps<\"span\">) {\n  return (\n    <span\n      data-slot=\"chip-detail\"\n      className={cn(\n        \"min-w-0 shrink-100 truncate text-xs text-muted-foreground\",\n        className\n      )}\n      {...props}\n    />\n  )\n}\n\n/** Chips in a row of their own, wrapping: e.g. an answer's sources. */\nfunction ChipList({ className, ...props }: React.ComponentProps<\"ul\">) {\n  return (\n    <ul\n      data-slot=\"chip-list\"\n      className={cn(\"flex min-w-0 flex-wrap gap-1\", className)}\n      {...props}\n    />\n  )\n}\n\nexport { Chip, ChipDetail, ChipList, chipVariants }\n",
+      "type": "registry:component"
+    }
+  ],
+  "type": "registry:component"
+}
