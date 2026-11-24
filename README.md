@@ -24,8 +24,8 @@ In an app set up for shadcn's `base-nova` style (for example
 whatever components you need from a release, by their URLs:
 
 ```sh
-pnpm dlx shadcn@latest add https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/theme.json
-pnpm dlx shadcn@latest add https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/composer.json
+pnpm dlx shadcn@latest add https://raw.githubusercontent.com/Bowl42/agentui/v0.1.31/public/r/theme.json
+pnpm dlx shadcn@latest add https://raw.githubusercontent.com/Bowl42/agentui/v0.1.31/public/r/composer.json
 ```
 
 Each item brings what it depends on, from the same release. For shorter
@@ -34,7 +34,7 @@ names, add the registry to `components.json`:
 ```json
 {
   "registries": {
-    "@bowl42": "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/{name}.json"
+    "@bowl42": "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.31/public/r/{name}.json"
   }
 }
 ```
