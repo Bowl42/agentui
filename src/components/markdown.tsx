@@ -773,6 +773,41 @@ function MarkdownMath({
   )
 }
 
+/** Short digests of plugin options, by the object, made once. */
+const digests = new WeakMap<object, string>()
+
+/**
+ * A plugin's options as Streamdown keys its processor cache by them: it
+ * writes each render's options out as JSON, every update of a streamed
+ * answer, a sanitizer's schema and all. A copy whose `toJSON` is a digest
+ * of them, made once: the same options, the same key, for a fraction of
+ * the work. The plugin sees the same fields.
+ */
+function keyedOptions(options: unknown): unknown {
+  if (typeof options !== "object" || options === null) return options
+  let digest = digests.get(options)
+  if (digest === undefined) {
+    // FNV-1a over the JSON, as two 32-bit halves.
+    const json = JSON.stringify(options) ?? ""
+    let low = 0x811c9dc5
+    let high = 0x01000193
+    for (let index = 0; index < json.length; index++) {
+      const code = json.charCodeAt(index)
+      low = Math.imul(low ^ code, 16777619)
+      high = Math.imul(high ^ code, 2246822519)
+    }
+    digest = `${json.length}:${(low >>> 0).toString(36)}${(high >>> 0).toString(36)}`
+    digests.set(options, digest)
+  }
+  const copy = Object.assign(
+    Object.create(Object.getPrototypeOf(options) as object) as object,
+    options
+  )
+  const key = digest
+  Object.defineProperty(copy, "toJSON", { value: () => key })
+  return copy
+}
+
 /**
  * A link or inline code and the punctuation right after it in one span,
  * kept on one line when it holds a chip: a browser may break after an
@@ -1612,7 +1647,15 @@ function Markdown({
       }),
       rehypeKeepPunctuation,
       rehypeLongRuns,
-    ]
+    ].map((plugin) =>
+      Array.isArray(plugin) && plugin.length > 1
+        ? ([
+            plugin[0],
+            keyedOptions(plugin[1]),
+            ...plugin.slice(2),
+          ] as typeof plugin)
+        : plugin
+    )
   }, [props.rehypePlugins, math, protocols])
   const merged = React.useMemo(() => ({ ...components, ...own }), [own])
   const context = React.useMemo(
