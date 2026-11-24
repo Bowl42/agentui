@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "input",
+  "title": "Input",
+  "description": "shadcn/ui's base-nova input, fixed: in dark, no fill, its border alone (3:1) outlining it, so it is not a grey slab on a card or a dialog. size=\"sm\": 28px and 13px, beside a toolbar's or a composer's 28px buttons (36px on a phone, 16px text under 768px so iOS does not zoom); a number is still the native size. Its spacing on the 4px module (docs/grid.md).",
+  "dependencies": [
+    "cn",
+    "@base-ui/react"
+  ],
+  "files": [
+    {
+      "path": "src/components/ui/input.tsx",
+      "content": "import * as React from \"react\"\nimport { Input as InputPrimitive } from \"@base-ui/react/input\"\nimport { cn } from \"cn\"\n\n// agentui: no fill in dark, its border alone (3:1) outlining it, so a\n// field is not a grey slab on a card or a dialog. `size=\"sm\"`: 28px, its\n// text 13px, beside a toolbar's or a composer's 28px buttons (36px on a\n// phone, as they are; 16px text under 768px, so iOS does not zoom). A\n// number is the native `size`, as shadcn's InputGroupInput passes it.\nfunction Input({\n  className,\n  type,\n  size = \"default\",\n  ...props\n}: Omit<React.ComponentProps<\"input\">, \"size\"> & {\n  /** Its height, or, a number, the native width in characters. */\n  size?: \"default\" | \"sm\" | number | undefined\n}) {\n  return (\n    <InputPrimitive\n      type={type}\n      data-slot=\"input\"\n      data-size={typeof size === \"number\" ? undefined : size}\n      size={typeof size === \"number\" ? size : undefined}\n      className={cn(\n        \"h-8 w-full min-w-0 rounded-lg border border-field bg-transparent px-3 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40\",\n        size === \"sm\" && \"h-7 rounded-md px-2 md:text-2sm max-sm:h-9\",\n        className\n      )}\n      {...props}\n    />\n  )\n}\n\nexport { Input }\n",
+      "type": "registry:ui"
+    }
+  ],
+  "type": "registry:ui"
+}

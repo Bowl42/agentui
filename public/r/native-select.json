@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "native-select",
+  "title": "Native Select",
+  "description": "shadcn/ui's base-nova native select, fixed: in dark, no fill, its border alone (3:1) outlining it, so it is not a grey slab on a card or a dialog. Its selection's colours are its own (::selection), not its descendants' too, a rule every element of the page tried on every restyle. Its spacing on the 4px module (docs/grid.md).",
+  "dependencies": [
+    "cn",
+    "@hugeicons/react",
+    "@hugeicons/core-free-icons"
+  ],
+  "files": [
+    {
+      "path": "src/components/ui/native-select.tsx",
+      "content": "import * as React from \"react\"\nimport { cn } from \"cn\"\nimport { HugeiconsIcon } from \"@hugeicons/react\"\nimport { UnfoldMoreIcon } from \"@hugeicons/core-free-icons\"\n\ntype NativeSelectProps = Omit<React.ComponentProps<\"select\">, \"size\"> & {\n  size?: \"sm\" | \"default\"\n}\n\n// agentui: no fill in dark, its border alone (3:1) outlining it, so a\n// field is not a grey slab on a card or a dialog.\nfunction NativeSelect({\n  className,\n  size = \"default\",\n  ...props\n}: NativeSelectProps) {\n  return (\n    <div\n      className={cn(\n        \"group/native-select relative w-fit has-[select:disabled]:opacity-50\",\n        className\n      )}\n      data-slot=\"native-select-wrapper\"\n      data-size={size}\n    >\n      {/* agentui: its own selection's colours ([&::selection]), not its\n          descendants' too (selection:), which made every element of the\n          page try the rule on every restyle; a select has none. */}\n      <select\n        data-slot=\"native-select\"\n        data-size={size}\n        className=\"h-8 w-full min-w-0 appearance-none rounded-lg border border-field bg-transparent py-1 pr-8 pl-3 text-sm transition-colors outline-none select-none [&::selection]:bg-primary [&::selection]:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-[size=sm]:py-0 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40\"\n        {...props}\n      />\n      <HugeiconsIcon icon={UnfoldMoreIcon} strokeWidth={2} className=\"pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2 text-muted-foreground select-none\" aria-hidden=\"true\" data-slot=\"native-select-icon\" />\n    </div>\n  )\n}\n\nfunction NativeSelectOption({\n  className,\n  ...props\n}: React.ComponentProps<\"option\">) {\n  return (\n    <option\n      data-slot=\"native-select-option\"\n      className={cn(\"bg-[Canvas] text-[CanvasText]\", className)}\n      {...props}\n    />\n  )\n}\n\nfunction NativeSelectOptGroup({\n  className,\n  ...props\n}: React.ComponentProps<\"optgroup\">) {\n  return (\n    <optgroup\n      data-slot=\"native-select-optgroup\"\n      className={cn(\"bg-[Canvas] text-[CanvasText]\", className)}\n      {...props}\n    />\n  )\n}\n\nexport { NativeSelect, NativeSelectOptGroup, NativeSelectOption }\n",
+      "type": "registry:ui"
+    }
+  ],
+  "type": "registry:ui"
+}
