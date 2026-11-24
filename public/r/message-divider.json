@@ -1,0 +1,17 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "message-divider",
+  "title": "Message Divider",
+  "description": "An event in a conversation, between its messages (a day, the context compacted, the model switched, a branch): one centred line of small muted text between rules, an icon first, what can be followed a button a little brighter. With running, its words shimmer, respecting reduced motion; a compaction marker can show context compacted, compacting or failed with an icon and words.",
+  "dependencies": [
+    "cn"
+  ],
+  "files": [
+    {
+      "path": "src/components/message-divider.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { cn } from \"cn\"\n\n/**\n * An event in a conversation, between its messages: a day, the context\n * compacted, the model switched, a branch. One centred line between\n * rules, an icon first; what can be followed is a `MessageDividerAction`.\n * With `running`, its words shimmer (respecting reduced motion), for example\n * while compacting context. Its icon stays in the text colour.\n * Not a `separator`: that role would hide its actions from screen\n * readers.\n */\nfunction MessageDivider({\n  className,\n  children,\n  running = false,\n  ...props\n}: React.ComponentProps<\"div\"> & { running?: boolean }) {\n  return (\n    <div\n      data-slot=\"message-divider\"\n      data-running={running || undefined}\n      aria-busy={running || undefined}\n      className={cn(\n        \"flex min-h-6 w-full min-w-0 items-center gap-2 text-xs text-subtle-foreground before:h-px before:min-w-4 before:flex-1 before:bg-border after:h-px after:min-w-4 after:flex-1 after:bg-border\",\n        className\n      )}\n      {...props}\n    >\n      <span\n        className={cn(\n          \"flex min-w-0 items-center gap-1 text-center [&_svg]:size-3 [&_svg]:shrink-0\",\n          // Shimmer uses text fill, leaving SVG currentColor strokes visible.\n          running && \"shimmer motion-reduce:shimmer-none\"\n        )}\n      >\n        {children}\n      </span>\n    </div>\n  )\n}\n\n/** A part of the event that can be followed: \"View summary\". */\nfunction MessageDividerAction({\n  className,\n  ...props\n}: React.ComponentProps<\"button\">) {\n  return (\n    <button\n      type=\"button\"\n      data-slot=\"message-divider-action\"\n      className={cn(\n        \"relative cursor-pointer rounded-sm font-medium text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:after:absolute pointer-coarse:after:-inset-3\",\n        className\n      )}\n      {...props}\n    />\n  )\n}\n\nexport { MessageDivider, MessageDividerAction }\n",
+      "type": "registry:component"
+    }
+  ],
+  "type": "registry:component"
+}

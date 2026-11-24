@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "floating-button",
+  "title": "Floating Button",
+  "description": "A button that floats over what it covers, e.g. one that jumps to the end of a long text or of a terminal's output: round, on the page's colour (a step lighter in dark) and raised by shadow-float, as the message scroller's button is.",
+  "dependencies": [
+    "cn"
+  ],
+  "registryDependencies": [
+    "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.31/public/r/button.json"
+  ],
+  "files": [
+    {
+      "path": "src/components/floating-button.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { cn } from \"cn\"\n\nimport { Button } from \"@/components/ui/button\"\n\n/**\n * A button that floats over what it covers, e.g. one that jumps to the\n * end of a long text or output: round, on the page's colour (a step\n * lighter in dark) and raised by `shadow-float`, as the message\n * scroller's button is. Its place, e.g. sticking to the bottom, is the\n * app's. It fades and grows in as it comes; with `visible`, it stays\n * and fades and shrinks out too, out of reach while hidden.\n */\nfunction FloatingButton({\n  variant = \"ghost\",\n  size = \"sm\",\n  visible,\n  className,\n  ...props\n}: React.ComponentProps<typeof Button> & {\n  /** Whether it shows; the app renders it all along, e.g. `!atEnd`. */\n  visible?: boolean | undefined\n}) {\n  const hidden = visible === false\n  return (\n    <Button\n      data-slot=\"floating-button\"\n      variant={variant}\n      size={size}\n      data-visible={visible === undefined ? undefined : String(visible)}\n      {...(hidden ? { inert: true, \"aria-hidden\": true } : {})}\n      className={cn(\n        \"rounded-full bg-background text-foreground shadow-float hover:bg-muted hover:text-foreground dark:bg-muted dark:hover:bg-accent\",\n        visible === undefined\n          ? \"animate-in motion-fade fade-in-0 zoom-in-95\"\n          : \"transition-[opacity,scale,background-color] motion-fade data-[visible=false]:pointer-events-none data-[visible=false]:scale-95 data-[visible=false]:opacity-0\",\n        className\n      )}\n      {...props}\n    />\n  )\n}\n\nexport { FloatingButton }\n",
+      "type": "registry:component"
+    }
+  ],
+  "type": "registry:component"
+}

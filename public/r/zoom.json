@@ -1,0 +1,14 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "zoom",
+  "title": "Zoom",
+  "description": "The zoom steps viewers and the image editor share (10% to 2000%, a viewer's to 800%), and nextZoom: the next step in or out, at least a fifth larger or smaller.",
+  "files": [
+    {
+      "path": "src/lib/zoom.ts",
+      "content": "export { nextZoom, zoomSteps }\n\n/** The zoom steps viewers and the image editor share: 1 is its own size. */\nconst zoomSteps = [\n  0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4, 6, 8, 12, 16, 20,\n]\n\n// A step nearer than this, by its ratio, is passed over: from a fitted\n// 72%, 75% would hardly change it, only push its edges out of sight.\nconst least = 1.2\n\n/**\n * The next zoom step in or out from this one, at least a fifth larger or\n * smaller, from `min` to `max` (a viewer's: 10% to 800%).\n */\nfunction nextZoom(\n  zoom: number,\n  direction: 1 | -1,\n  { min = 0.1, max = 8 }: { min?: number; max?: number } = {}\n) {\n  const steps = zoomSteps.filter(\n    (step) => step >= min - 1e-6 && step <= max + 1e-6\n  )\n  if (direction < 0) steps.reverse()\n  return (\n    steps.find((step) =>\n      direction > 0\n        ? step >= zoom * least - 1e-6\n        : step <= zoom / least + 1e-6\n    ) ?? steps.at(-1)!\n  )\n}\n",
+      "type": "registry:lib"
+    }
+  ],
+  "type": "registry:lib"
+}
