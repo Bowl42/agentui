@@ -817,6 +817,8 @@ type VoiceState = {
   held: boolean
   /** Whether, held, it is slid back far enough to cancel when let go. */
   cancelling: boolean
+  /** Held by a key (Space on the mic, or the `shortcut`): Escape cancels. */
+  keyHeld: boolean
   /** The longest it records, in seconds. */
   limit: number | undefined
   /** Held on talk mode's bar: shown over the conversation. */
@@ -870,6 +872,8 @@ type ComposerVoiceLabels = {
   retry: string
   /** Held: "Slide to cancel". */
   slide: string
+  /** Held by a key, nothing to slide: "Esc to cancel". */
+  escape: string
   /** Held and slid back: "Release to cancel". */
   release: string
   /** The last seconds of `maxDuration`: "8s left". */
@@ -6137,6 +6141,7 @@ const defaultVoiceLabels: ComposerVoiceLabels = {
   failed: "Couldn't make out the words",
   retry: "Retry",
   slide: "Slide to cancel",
+  escape: "Esc to cancel",
   release: "Release to cancel",
   left: (seconds) => `${seconds}s left`,
   denied: "Microphone access is off: allow it in the site's settings",
@@ -6246,7 +6251,7 @@ function liveText(input: VoiceInput) {
  * going to the toolbar. Its tools' place, Cancel and Done.
  *
  * Tapped, it records until Done; held (pointer or Space), until let go,
- * slid back to cancel. `submitOnFinish` sends what it made out at once:
+ * slid back to cancel (by a key, Escape cancels: `labels.escape`). `submitOnFinish` sends what it made out at once:
  * always, or (`"hold"`) only when it was held. `maxDuration` counts its
  * last seconds down and finishes at its end.
  *
@@ -6381,10 +6386,13 @@ function ComposerVoice({
   const group = React.useRef<HTMLDivElement>(null)
   const stateId = React.useId()
   const sessionRef = React.useRef(session)
-  // A pointer or Space holding the mic down: where and when it started.
-  const hold = React.useRef<{ at: number; x: number; rtl: boolean } | null>(
-    null
-  )
+  // A pointer or a key holding the mic down: where and when it started.
+  const hold = React.useRef<{
+    at: number
+    x: number
+    rtl: boolean
+    key?: boolean
+  } | null>(null)
   const latest = React.useRef({
     onCancel,
     onFinish,
@@ -6521,6 +6529,7 @@ function ComposerVoice({
             // Let go while it was starting: a tap.
             held: held && hold.current !== null,
             cancelling: false,
+            keyHeld: hold.current?.key === true,
             limit: maxDuration,
             talk: press?.talk ?? false,
             target: null,
@@ -6549,11 +6558,12 @@ function ComposerVoice({
     else actions.finish()
   }
 
-  const press = (x: number, target: HTMLElement) => {
+  const press = (x: number, target: HTMLElement, key = false) => {
     hold.current = {
       at: performance.now(),
       x,
       rtl: getComputedStyle(target).direction === "rtl",
+      key,
     }
     start(true)
   }
@@ -6632,7 +6642,7 @@ function ComposerVoice({
       press.timer = setTimeout(() => {
         if (down !== press) return
         press.started = true
-        hold.current = { at: press.at, x: 0, rtl: false }
+        hold.current = { at: press.at, x: 0, rtl: false, key: true }
         keyRef.current.start(true, press)
       }, keyDelay)
     }
@@ -6989,7 +6999,7 @@ function ComposerVoice({
         // Space held records until let go; not as a click.
         event.preventDefault()
         if (event.repeat || hold.current) return
-        press(0, event.currentTarget)
+        press(0, event.currentTarget, true)
         const up = (ended: KeyboardEvent) => {
           if (ended.key !== " ") return
           ended.preventDefault()
@@ -7187,14 +7197,18 @@ function VoiceControls({ voice }: { voice: VoiceSession }) {
               voice.cancelling && "text-foreground"
             )}
           >
-            {voice.cancelling ? null : (
+            {voice.cancelling || voice.keyHeld ? null : (
               <HugeiconsIcon
                 icon={ArrowLeft01Icon}
                 strokeWidth={2}
                 className="rtl:rotate-180"
               />
             )}
-            {voice.cancelling ? voice.labels.release : voice.labels.slide}
+            {voice.cancelling
+              ? voice.labels.release
+              : voice.keyHeld
+                ? voice.labels.escape
+                : voice.labels.slide}
           </span>
           <span
             aria-hidden

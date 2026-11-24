@@ -1752,8 +1752,10 @@ puts the words in the text at the caret, to edit before sending.
 
 - Tapped, it records until Done (Escape or Cancel drops it); held,
   pointer or Space, until let go, slid back past 80px to cancel ("Slide
-  to cancel", then "Release to cancel"). A press shorter than 300ms is
-  a tap, so a quick click never cuts a take short.
+  to cancel", then "Release to cancel"); held by a key (Space, or the
+  `shortcut`), nothing slides, so it says "Esc to cancel"
+  (`labels.escape`). A press shorter than 300ms is a tap, so a quick
+  click never cuts a take short.
 - Without a `transcript`, the time and a waveform take the text's
   place, and the words come at Done. With one (even empty: "Listening…"),
   the words do, as the text will be (16/24), the `interim` ones grey,

@@ -433,13 +433,31 @@ export const HeldSpace: Story = {
     const user = userEvent.setup()
     micOf().focus()
     await user.keyboard("[Space>]")
-    await expect(await screen.findByText("Slide to cancel")).toBeVisible()
+    await expect(await screen.findByText("Esc to cancel")).toBeVisible()
     await new Promise((resolve) => setTimeout(resolve, 400))
     await user.keyboard("[/Space]")
     await waitFor(() =>
       expect(editorOf()).toHaveTextContent("Rename the upload helper")
     )
     await caretAfter(/import it$/)
+  },
+}
+
+/** Escape while Space holds it, as it says: dropped, not finished. */
+export const HeldSpaceEscape: Story = {
+  tags: ["!autodocs"],
+  args: { live: true, heard: 6 },
+  play: async ({ args }) => {
+    const user = userEvent.setup()
+    micOf().focus()
+    await user.keyboard("[Space>]")
+    await screen.findByText("Esc to cancel")
+    await user.keyboard("{Escape}")
+    await waitFor(() => expect(args.onCancel).toHaveBeenCalledOnce())
+    await user.keyboard("[/Space]")
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    await expect(args.onCancel).toHaveBeenCalledOnce()
+    await expect(editorOf()).toHaveTextContent("")
   },
 }
 
@@ -751,7 +769,7 @@ export const FocusBesideAToolSpace: Story = {
     const user = userEvent.setup()
     micOf().focus()
     await user.keyboard("[Space>]")
-    await screen.findByText("Slide to cancel")
+    await screen.findByText("Esc to cancel")
     await new Promise((resolve) => setTimeout(resolve, 400))
     await user.keyboard("[/Space]")
     await caretAfter(/^Rename the upload helper/)
@@ -778,7 +796,7 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 /**
  * A `shortcut` key, held alone from anywhere (here, nothing focused): it
- * records until let go, and with `submitOnFinish="hold"` sends; the key
+ * records until let go ("Esc to cancel"), and with `submitOnFinish="hold"` sends; the key
  * itself does nothing else. The mic says so: in its tooltip, and as
  * `aria-keyshortcuts`.
  */
@@ -799,7 +817,9 @@ export const ShortcutHeld: Story = {
     await user.keyboard("[AltRight>]")
     key.stop()
     await expect(key.seen).toEqual([true])
-    await expect(await screen.findByText("Slide to cancel")).toBeVisible()
+    // Held by a key, nothing to slide: Escape cancels, and says so.
+    await expect(await screen.findByText("Esc to cancel")).toBeVisible()
+    await expect(screen.queryByText("Slide to cancel")).toBeNull()
     await wait(400)
     await user.keyboard("[/AltRight]")
     await waitFor(() => expect(args.onSubmit).toHaveBeenCalled())
@@ -846,7 +866,7 @@ export const ShortcutWithAKey: Story = {
     // Held past its start, then another key: dropped.
     await user.keyboard("[AltRight>]")
     await waitFor(() => expect(args.onStart).toHaveBeenCalled())
-    await screen.findByText("Slide to cancel")
+    await screen.findByText("Esc to cancel")
     await user.keyboard("[KeyE]")
     key.stop()
     await expect(key.seen).toEqual([false, false])
@@ -866,7 +886,7 @@ export const ShortcutEscape: Story = {
   play: async ({ args }) => {
     const user = userEvent.setup()
     await user.keyboard("[AltRight>]")
-    await screen.findByText("Slide to cancel")
+    await screen.findByText("Esc to cancel")
     await user.keyboard("{Escape}")
     await waitFor(() => expect(args.onCancel).toHaveBeenCalledOnce())
     await user.keyboard("[/AltRight]")
@@ -887,7 +907,7 @@ export const ShortcutWindowBlur: Story = {
   play: async ({ args }) => {
     const user = userEvent.setup()
     await user.keyboard("[AltRight>]")
-    await screen.findByText("Slide to cancel")
+    await screen.findByText("Esc to cancel")
     await wait(400)
     window.dispatchEvent(new FocusEvent("blur"))
     await waitFor(() =>
