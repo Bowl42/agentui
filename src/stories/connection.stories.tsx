@@ -75,7 +75,12 @@ function Details({ item }: { item: Item | undefined }) {
           title="Enter its key again"
           description="Its key was refused. An admin sets it in the connection's settings."
           action={
-            <Button variant="outline" size="sm" render={<a href="#guide" />}>
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<a href="#guide" />}
+            >
               How to
             </Button>
           }

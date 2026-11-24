@@ -2714,7 +2714,7 @@ not managed: no editing, no secrets. A list beside one's details:
 
 <ConnectionDetails state={selected ? "ready" : "none"}>
   <ConnectionDetailsHeader label={…} status={…} checkedAt={…} reason={…} />
-  <ConnectionNotice title="Enter its key again" action={<Button render={<a href={guide} />}>How to</Button>} />
+  <ConnectionNotice title="Enter its key again" action={<Button nativeButton={false} render={<a href={guide} />}>How to</Button>} />
   <ConnectionDetailsField label="Addresses">
     <ConnectionTarget>{url}</ConnectionTarget>
   </ConnectionDetailsField>

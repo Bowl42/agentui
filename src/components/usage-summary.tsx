@@ -134,7 +134,8 @@ function Amount({
         <span className="text-muted-foreground">{labels.unknown}</span>
       )}
       {said !== null && (
-        <span className="text-xs text-subtle-foreground">{said}</span>
+        // The muted grey, not the subtle: on a hovered row's tint too.
+        <span className="text-xs text-muted-foreground">{said}</span>
       )}
     </span>
   )
