@@ -772,8 +772,10 @@ type ComposerContextValue = {
   completeDelay: number
   /** The recording's input levels, outside React's state: they change often. */
   voiceLevels: Store<VoiceInput>
-  /** A take starts: where its words will go, kept. */
+  /** A take starts: where its words will go, kept (`takePlace`). */
   markTake: () => void
+  /** Where the take under way puts its words. */
+  takePlace: () => TakePlace | null
   /**
    * A take's words, where it started (else at the caret, or the end),
    * spaced from the text beside them as they need, and focuses.
@@ -1465,6 +1467,14 @@ function $charBeside(point: KeptPoint, side: "before" | "after"): string {
   return (side === "before" ? node.getPreviousSibling() : node.getNextSibling())
     ? "\n"
     : ""
+}
+
+/** The draft's characters beside where a take's words go. */
+function $besideTake(place: TakePlace) {
+  return {
+    before: $charBeside(place.anchor, "before"),
+    after: $charBeside(place.focus, "after"),
+  }
 }
 
 /** A value's text, its chips as "￼", to space it by. */
@@ -2428,6 +2438,9 @@ function ComposerForm({
   const markTake = React.useCallback(() => {
     takePlace.current = editor.getEditorState().read($takePlace)
   }, [editor])
+  // The same function every render: the take's copy of the draft is
+  // made once (VoiceDraft).
+  const getTakePlace = React.useCallback(() => takePlace.current, [])
   /**
    * A take's words where it started (or at the caret, or the end), a
    * space on either side where they need one (`dictationSpaces`), the
@@ -3061,6 +3074,7 @@ function ComposerForm({
     completeDelay,
     voiceLevels,
     markTake,
+    takePlace: getTakePlace,
     insertTake: (inserted) => {
       insertTake(inserted)
       // Hidden (a take's words going in as it ends), it takes the focus
@@ -4060,7 +4074,9 @@ function ComposerEditor({
           </div>
         </div>
       ) : null}
-      {inBox(composer.voice) ? <VoiceWave voice={composer.voice} /> : null}
+      {inBox(composer.voice) ? (
+        <VoiceTake voice={composer.voice} expanded={expanded} />
+      ) : null}
       <TabsContent
         value="write"
         keepMounted
@@ -4068,7 +4084,7 @@ function ComposerEditor({
         className={cn(
           "relative w-full min-w-0 flex-none",
           expanded && "min-h-0 flex-1",
-          // While recording, the waveform takes its place.
+          // While recording, the draft as it will be takes its place.
           inBox(composer.voice) && "hidden"
         )}
         // Without its tabs, the editor is not a tab panel.
@@ -6459,10 +6475,12 @@ function liveText(input: VoiceInput) {
  * beside it where the script needs one (`dictationSpaces`), to edit
  * before sending. Cancel or Escape drops it (`onCancel`).
  *
- * While it records, the time and a waveform of the app's `levels` take
- * the text's place; given a live `transcript` (and its `interim` words,
- * still changing, in grey), the words do, the time and a smaller wave
- * going to the toolbar. Its tools' place, Cancel and Done.
+ * While it records, the editor is read only, the draft in view as it
+ * will be; above it, the time and a waveform of the app's `levels`
+ * (alone, the box empty). Given a live `transcript` (and its `interim`
+ * words, still changing, in grey), the words are in the draft where
+ * they go, the time and a smaller wave going to the toolbar. Its tools'
+ * place, Cancel and Done.
  *
  * Tapped, it records until Done; held (pointer or Space), until let go,
  * slid back to cancel (by a key, Escape cancels: `labels.escape`). `submitOnFinish` sends what it made out at once:
@@ -7799,6 +7817,240 @@ function VoiceWave({ voice }: { voice: VoiceSession }) {
       )}
     </div>
   )
+}
+
+/**
+ * A take in the box: the draft as it will be, read only, the words
+ * where they go (`VoiceDraft`); above it, without a live transcript,
+ * the time and a waveform (alone, with no draft), or why the words
+ * were not made out.
+ */
+function VoiceTake({
+  voice,
+  expanded,
+}: {
+  voice: VoiceSession
+  expanded: boolean
+}) {
+  const { voiceLevels } = useComposer()
+  const [editor] = useLexicalComposerContext()
+  const live = React.useSyncExternalStore(
+    voiceLevels.subscribe,
+    () => isLive(voiceLevels.get()),
+    () => isLive(voiceLevels.get())
+  )
+  // The draft as the take found it: the editor's is not changed meanwhile.
+  const [empty] = React.useState(() =>
+    editor.getEditorState().read(() => $getRoot().getTextContent() === "")
+  )
+  return (
+    <>
+      {voice.failed || !live ? <VoiceWave voice={voice} /> : null}
+      {live || !empty ? (
+        <VoiceDraft voice={voice} live={live} expanded={expanded} />
+      ) : null}
+    </>
+  )
+}
+
+/**
+ * The draft while a take records, as it will be: its text (and chips)
+ * as the editor shows them, read only, and the take's words where they
+ * go, the settled ones in the text's colour, those still changing in
+ * grey, spaced from the text beside them as they will be. Its end kept
+ * in view. A copy of the editor's, made as the take starts.
+ */
+function VoiceDraft({
+  voice,
+  live,
+  expanded,
+}: {
+  voice: VoiceSession
+  live: boolean
+  expanded: boolean
+}) {
+  const { voiceLevels, takePlace } = useComposer()
+  const [editor] = useLexicalComposerContext()
+  const input = React.useSyncExternalStore(
+    voiceLevels.subscribe,
+    voiceLevels.get,
+    voiceLevels.get
+  )
+  const box = React.useRef<HTMLDivElement>(null)
+  const [draft, setDraft] = React.useState<{
+    /** Where the words go, in the copy. */
+    marker: HTMLElement
+    before: string
+    after: string
+    empty: boolean
+  } | null>(null)
+  React.useLayoutEffect(() => {
+    const element = box.current
+    const root = editor.getRootElement()
+    if (!element || !root) return
+    const copied = copyDraft(editor, root, takePlace())
+    element.className = root.className
+    element.replaceChildren(...copied.nodes)
+    setDraft(copied)
+    return () => element.replaceChildren()
+  }, [editor, takePlace])
+  const settled = live ? (input.transcript?.trim() ?? "") : ""
+  const changing = live ? (input.interim?.trim() ?? "") : ""
+  const words = [settled, changing].filter(Boolean).join(" ")
+  // Its end in view, as the words come.
+  React.useLayoutEffect(() => {
+    const element = box.current
+    const marker = draft?.marker
+    if (!element || !marker) return
+    const view = element.getBoundingClientRect()
+    const end = marker.getBoundingClientRect()
+    const style = getComputedStyle(element)
+    const below = end.bottom - (view.bottom - parseFloat(style.paddingBottom))
+    const above = view.top + parseFloat(style.paddingTop) - end.top
+    if (below > 0 && end.height <= view.height) element.scrollTop += below
+    else if (above > 0) element.scrollTop -= above
+  }, [draft, words])
+  const spaces = draft
+    ? dictationSpaces(draft.before, words, draft.after)
+    : { lead: "", trail: "" }
+  return (
+    <div
+      data-slot="composer-voice-draft"
+      className={cn(
+        "relative w-full min-w-0 flex-none",
+        expanded && "min-h-0 flex-1"
+      )}
+    >
+      {/* The editor's classes, copied: the text set as it is there. */}
+      <div ref={box} data-slot="composer-voice-transcript" />
+      {draft
+        ? createPortal(
+            <span
+              className={cn(voice.cancelling && "opacity-40")}
+              data-slot="composer-voice-words"
+            >
+              {spaces.lead}
+              {settled}
+              {changing ? (
+                <span className="text-muted-foreground">
+                  {settled ? " " : ""}
+                  {changing}
+                </span>
+              ) : null}
+              {spaces.trail}
+              {live && !words && draft.empty ? (
+                <span className="text-subtle-foreground">
+                  {voice.labels.listening}
+                </span>
+              ) : null}
+            </span>,
+            draft.marker
+          )
+        : null}
+    </div>
+  )
+}
+
+/**
+ * A copy of the editor's text for `VoiceDraft`, read only: its nodes,
+ * what a take's words replace taken out, an empty element where they
+ * go; and the characters beside them.
+ */
+function copyDraft(
+  editor: LexicalEditor,
+  root: HTMLElement,
+  place: TakePlace | null
+) {
+  return editor.getEditorState().read(() => {
+    const at =
+      place && $pointHolds(place.anchor) && $pointHolds(place.focus)
+        ? place
+        : $takePlace()
+    const start = domPoint(editor, root, at.anchor)
+    const end = domPoint(editor, root, at.focus)
+    const copy = root.cloneNode(true) as HTMLElement
+    const marker = document.createElement("span")
+    marker.dataset.slot = "composer-voice-place"
+    const range = document.createRange()
+    const mapped = [start, end].map((point) =>
+      point ? copiedPoint(root, copy, point) : null
+    )
+    if (mapped[0] && mapped[1]) {
+      range.setStart(...mapped[0])
+      range.setEnd(...mapped[1])
+      range.deleteContents()
+      range.insertNode(marker)
+    } else (copy.lastElementChild ?? copy).append(marker)
+    // Not a second editor: no ids, nothing to focus, nothing to edit.
+    for (const element of copy.querySelectorAll("*")) {
+      element.removeAttribute("id")
+      element.removeAttribute("contenteditable")
+      for (const name of [
+        "aria-describedby",
+        "aria-labelledby",
+        "aria-controls",
+      ])
+        element.removeAttribute(name)
+      if (
+        element.matches("button, a[href], input, select, textarea, [tabindex]")
+      )
+        element.setAttribute("inert", "")
+    }
+    return {
+      nodes: Array.from(copy.childNodes),
+      marker,
+      ...$besideTake(at),
+      empty: $getRoot().getTextContent() === "",
+    }
+  })
+}
+
+/** A kept point in the editor's page, as a DOM boundary point. */
+function domPoint(
+  editor: LexicalEditor,
+  root: HTMLElement,
+  point: KeptPoint
+): [Node, number] | null {
+  const node = $getNodeByKey(point.key)
+  const element = $isRootOrShadowRoot(node)
+    ? root
+    : editor.getElementByKey(point.key)
+  if (!node || !element) return null
+  if (point.type === "text") {
+    const text = document
+      .createTreeWalker(element, NodeFilter.SHOW_TEXT)
+      .nextNode() as Text | null
+    return text ? [text, Math.min(point.offset, text.length)] : [element, 0]
+  }
+  if (!$isElementNode(node)) return null
+  const child = node.getChildAtIndex(point.offset)
+  const last = point.offset > 0 ? node.getChildAtIndex(point.offset - 1) : null
+  const childElement = child && editor.getElementByKey(child.getKey())
+  if (childElement?.parentNode)
+    return [childElement.parentNode, indexIn(childElement)]
+  const lastElement = last && editor.getElementByKey(last.getKey())
+  if (lastElement?.parentNode)
+    return [lastElement.parentNode, indexIn(lastElement) + 1]
+  return [element, 0]
+}
+
+const indexIn = (node: Node) =>
+  Array.prototype.indexOf.call(node.parentNode!.childNodes, node)
+
+/** The same point in a copy of `root`. */
+function copiedPoint(
+  root: Node,
+  copy: Node,
+  [node, offset]: [Node, number]
+): [Node, number] | null {
+  const path: number[] = []
+  for (let at = node; at !== root; at = at.parentNode!) {
+    if (!at.parentNode) return null
+    path.unshift(indexIn(at))
+  }
+  let copied: Node | undefined = copy
+  for (const index of path) copied = copied?.childNodes[index]
+  return copied ? [copied, offset] : null
 }
 
 /**

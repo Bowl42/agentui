@@ -531,6 +531,13 @@ export const TranscriptionFailed: Story = {
   },
 }
 
+/** The draft in the box while a take records, read only. */
+const draftOf = () =>
+  document.querySelector<HTMLElement>("[data-slot=composer-voice-draft]")
+/** The take's words in it, where they go. */
+const wordsOf = () =>
+  document.querySelector<HTMLElement>("[data-slot=composer-voice-words]")
+
 /** Types `text` in the editor, then moves the caret `left` back. */
 async function draft(text: string, left = 0) {
   await userEvent.click(editorOf())
@@ -557,15 +564,62 @@ async function caretBetween(before: string, after: string) {
 }
 
 /**
+ * Live, with a draft: the draft stays in view, read only, the words
+ * where they will go (after it, a space between), the settled ones in
+ * the text's colour and those still changing in grey. Done puts them
+ * there, the caret after them.
+ */
+export const LiveInADraft: Story = {
+  args: { live: true, heard: 6, tick: 60_000 },
+  play: async () => {
+    await draft("hello world")
+    await userEvent.click(micOf())
+    await waitFor(() => expect(wordsOf()).not.toBeNull())
+    const shown = draftOf()!
+    await expect(shown).toBeVisible()
+    await expect(shown).toHaveTextContent(
+      /^hello world Rename the upload helper to sendFile$/
+    )
+    // Not editable meanwhile: the editor hidden, its copy not a textbox.
+    await expect(rootOf()).not.toBeVisible()
+    await expect(shown.querySelector("[contenteditable]")).toBeNull()
+    await expect(
+      within(shown).queryByRole("textbox", { hidden: true })
+    ).toBeNull()
+    // The words in the draft's line, as the editor sets it: 16/24.
+    const words = wordsOf()!
+    await expect(getComputedStyle(words).fontSize).toBe("16px")
+    await expect(words.closest("p")).toHaveTextContent(/^hello world /)
+    const changing = within(words).getByText(/to sendFile$/)
+    await expect(getComputedStyle(changing).color).not.toBe(
+      getComputedStyle(words).color
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Done" }))
+    await waitFor(() =>
+      expect(editorOf()).toHaveTextContent(
+        /^hello world Rename the upload helper to sendFile$/
+      )
+    )
+    await caretAfter(/^hello world Rename the upload helper to sendFile$/)
+  },
+}
+
+/**
  * The caret in the middle of the draft as the take starts: the words
- * go there, a space on either side, the caret after them.
+ * go there, a space on either side, shown so while it records; after,
+ * the caret after them.
  */
 export const LiveInTheMiddle: Story = {
   args: { live: true, heard: 6, tick: 60_000 },
   play: async () => {
     await draft("hello world", 6)
     await userEvent.click(micOf())
-    await userEvent.click(await screen.findByRole("button", { name: "Done" }))
+    await waitFor(() =>
+      expect(draftOf()).toHaveTextContent(
+        /^hello Rename the upload helper to sendFile world$/
+      )
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Done" }))
     await waitFor(() =>
       expect(editorOf()).toHaveTextContent(
         /^hello Rename the upload helper to sendFile world$/
@@ -589,14 +643,19 @@ export const LiveOverASelection: Story = {
     )
     await wait(50)
     await userEvent.click(micOf())
-    await userEvent.click(await screen.findByRole("button", { name: "Done" }))
+    await waitFor(() =>
+      expect(draftOf()).toHaveTextContent(
+        /^hello Rename the upload helper to sendFile$/
+      )
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Done" }))
     await caretAfter(/^hello Rename the upload helper to sendFile$/)
   },
 }
 
 /**
  * Japanese, written without spaces: the words go in beside it with
- * none.
+ * none, while it records and after.
  */
 export const LiveBesideJapanese: Story = {
   tags: ["!autodocs"],
@@ -604,14 +663,20 @@ export const LiveBesideJapanese: Story = {
   play: async () => {
     await draft("ファイル名を")
     await userEvent.click(micOf())
-    await userEvent.click(await screen.findByRole("button", { name: "Done" }))
+    await waitFor(() =>
+      expect(draftOf()).toHaveTextContent(
+        /^ファイル名をRename the upload helper to sendFile$/
+      )
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Done" }))
     await caretAfter(/^ファイル名をRename the upload helper to sendFile$/)
   },
 }
 
 /**
- * Tapped with a draft, no live transcript: Done puts the words after
- * it, a space between.
+ * Tapped with a draft, no live transcript: the time and a waveform
+ * above it, the draft still in view; Done puts the words after it, a
+ * space between.
  */
 export const TappedInADraft: Story = {
   play: async () => {
@@ -620,12 +685,46 @@ export const TappedInADraft: Story = {
     await expect(
       await screen.findByRole("status", { name: /^Recording 0:0/ })
     ).toBeVisible()
+    await expect(draftOf()).toBeVisible()
+    await expect(draftOf()).toHaveTextContent(/^hello world$/)
     await userEvent.click(screen.getByRole("button", { name: "Done" }))
     await waitFor(() =>
       expect(editorOf()).toHaveTextContent(
         /^hello world Rename the upload helper/
       )
     )
+    await caretAfter(/^hello world Rename the upload helper.* import it$/)
+  },
+}
+
+/** Held, the draft stays in view too, its words in it. */
+export const HeldInADraft: Story = {
+  tags: ["!autodocs"],
+  args: { live: true, heard: 6, tick: 60_000 },
+  play: async () => {
+    await draft("hello world", 6)
+    const x = await pressMic()
+    await expect(draftOf()).toHaveTextContent(
+      /^hello Rename the upload helper to sendFile world$/
+    )
+    await letGo(x, 400)
+    await caretBetween("hello Rename the upload helper to sendFile", " world")
+  },
+}
+
+/** The words not made out, the draft still in view under why. */
+export const TranscriptionFailedInADraft: Story = {
+  tags: ["!autodocs"],
+  args: { failOnce: true },
+  play: async () => {
+    await draft("hello world")
+    await userEvent.click(micOf())
+    await userEvent.click(await screen.findByRole("button", { name: "Done" }))
+    await expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Couldn't make out the words"
+    )
+    await expect(draftOf()).toHaveTextContent(/^hello world$/)
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }))
     await caretAfter(/^hello world Rename the upload helper.* import it$/)
   },
 }

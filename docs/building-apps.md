@@ -1758,11 +1758,14 @@ sending.
   `shortcut`), nothing slides, so it says "Esc to cancel"
   (`labels.escape`). A press shorter than 300ms is a tap, so a quick
   click never cuts a take short.
-- Without a `transcript`, the time and a waveform take the text's
-  place, and the words come at Done. With one (even empty: "Listening…"),
-  the words do, as the text will be (16/24), the `interim` ones grey,
-  the time and a smaller wave on the toolbar; Done keeps the words shown
-  when `onFinish` returns nothing.
+- While it records, the editor is read only: the draft stays in view
+  as it will be, a copy of the editor's text and chips. Without a
+  `transcript`, the time and a waveform are above it (alone in an empty
+  box), and the words come at Done. With one (even empty: "Listening…"
+  in an empty box), the words are in the draft where they will go, as
+  its text (16/24), the `interim` ones grey, the time and a smaller wave
+  on the toolbar; Done keeps the words shown when `onFinish` returns
+  nothing.
 - The words are spaced from the draft as a script needs: one space on
   either side where the text beside them has none and both are letters
   or digits of a script written with spaces (Latin, Cyrillic, Greek,
