@@ -68,7 +68,7 @@ function Demo({
               }
               setPinned(next)
               resolve()
-            }, 300)
+            }, 1000)
           ),
       })}
     />
@@ -144,8 +144,13 @@ export const SourceAndPin: Story = {
     const row = document.querySelector("[data-slot=model-picker-source]")!
     await expect(row).toHaveTextContent("The project's default")
     await userEvent.click(screen.getByRole("button", { name: "Pin" }))
-    await expect(await screen.findByText("Saving…")).toBeVisible()
-    await expect(await screen.findByText("Couldn't save")).toBeVisible()
+    const saving = await screen.findByText("Saving…")
+    // Once the popup has faded in.
+    await waitFor(() => expect(saving).toBeVisible())
+    const failed = await screen.findByText("Couldn't save", undefined, {
+      timeout: 5000,
+    })
+    await waitFor(() => expect(failed).toBeVisible())
     await userEvent.click(screen.getByRole("button", { name: "Pin" }))
     await expect(
       await screen.findByRole("button", { name: "Unpin" })
