@@ -893,8 +893,10 @@ type ComposerVoiceLabels = {
   /** An input given no name: "Microphone 2", by its place among them. */
   unnamedInput: (place: number) => string
   /**
-   * The mic's tooltip with a `shortcut`: "Hold Right ⌥ to talk". Empty,
-   * no tooltip.
+   * The mic's tooltip with a `shortcut`, and its description: "Hold
+   * Right ⌥ to talk". It names the key exactly, as `aria-keyshortcuts`
+   * cannot (a key's side, as Right Alt, is not in it). Not given, "Hold
+   * Right Alt to talk", from the key's code; empty, none.
    */
   shortcut: string
   /** With `ready`: the microphone is open, a press records at once. */
@@ -6199,10 +6201,24 @@ function watchShortcutFocus() {
   })
 }
 
-/** A `KeyboardEvent.code` as `aria-keyshortcuts` names it. */
+/**
+ * A `KeyboardEvent.code` as `aria-keyshortcuts` names it: by its
+ * `KeyboardEvent.key`, which has no side ("AltRight" is "Alt").
+ */
 function ariaKey(code: string) {
   const modifier = /^(Alt|Control|Meta|Shift)(Left|Right)$/.exec(code)
   if (modifier) return modifier[1]!
+  const key = /^(?:Key|Digit)(.)$/.exec(code)
+  return key ? key[1]! : code
+}
+
+/** A `KeyboardEvent.code` as a reader names it: "Right Alt", "K". */
+function keyName(code: string) {
+  const modifier = /^(Alt|Control|Meta|Shift)(Left|Right)$/.exec(code)
+  if (modifier) {
+    const key = modifier[1] === "Control" ? "Ctrl" : modifier[1]!
+    return `${modifier[2]} ${key}`
+  }
   const key = /^(?:Key|Digit)(.)$/.exec(code)
   return key ? key[1]! : code
 }
@@ -6280,7 +6296,9 @@ function liveText(input: VoiceInput) {
  * are ignored. The window losing the focus while it is held finishes
  * the take, the words kept, not sent. Of several mics with one, the one
  * whose composer has the focus answers it, else the one that last had
- * it, else the first mounted. `labels.shortcut` says so in its tooltip.
+ * it, else the first mounted. `labels.shortcut` says so in its tooltip
+ * and description, naming the key exactly (by default from its code:
+ * "Hold Right Alt to talk"), as `aria-keyshortcuts` cannot ("Alt").
  *
  * `ready` (the app keeps the microphone open, so a press records at
  * once) shows on the idle mic: its glyph in the text's colour and a dot
@@ -6385,6 +6403,7 @@ function ComposerVoice({
   const [starting, setStarting] = React.useState(false)
   const group = React.useRef<HTMLDivElement>(null)
   const stateId = React.useId()
+  const keysId = React.useId()
   const sessionRef = React.useRef(session)
   // A pointer or a key holding the mic down: where and when it started.
   const hold = React.useRef<{
@@ -6950,13 +6969,18 @@ function ComposerVoice({
 
   // Whether a press records at once, or is opening the microphone.
   const state = starting ? all.starting : ready ? all.ready : ""
+  // What its shortcut is, exactly: the tooltip's words.
+  const keys = shortcut
+    ? (labels?.shortcut ?? `Hold ${keyName(shortcut)} to talk`)
+    : ""
+  const described = [state && stateId, keys && keysId].filter(Boolean)
   const button = (
     <ComposerButton
       data-slot="composer-voice"
       data-ready={(ready && !starting) || undefined}
       data-starting={starting || undefined}
       aria-label={all.record}
-      aria-describedby={state ? stateId : undefined}
+      aria-describedby={described.join(" ") || undefined}
       aria-busy={starting || undefined}
       aria-keyshortcuts={shortcut ? ariaKey(shortcut) : undefined}
       disabled={disabled}
@@ -7042,18 +7066,22 @@ function ComposerVoice({
           {state}
         </span>
       ) : null}
+      {keys ? (
+        <span id={keysId} hidden>
+          {keys}
+        </span>
+      ) : null}
     </ComposerButton>
   )
   // Its shortcut, said in a tooltip.
-  const mic =
-    shortcut && all.shortcut ? (
-      <Tooltip>
-        <TooltipTrigger render={button} />
-        <TooltipContent>{all.shortcut}</TooltipContent>
-      </Tooltip>
-    ) : (
-      button
-    )
+  const mic = keys ? (
+    <Tooltip>
+      <TooltipTrigger render={button} />
+      <TooltipContent>{keys}</TooltipContent>
+    </Tooltip>
+  ) : (
+    button
+  )
   // A long press held: over the conversation, its take.
   const talkTake =
     composer.voice?.talk && composer.voice.held ? composer.voice : null

@@ -1809,7 +1809,10 @@ puts the words in the text at the caret, to edit before sending.
   the reader went elsewhere meanwhile.
 - `shortcut` gives it a key that drives it from anywhere in the window,
   by its `KeyboardEvent.code`, pressed alone; `labels.shortcut` says so
-  in the mic's tooltip, and the mic has it as `aria-keyshortcuts`:
+  in the mic's tooltip and description (by default "Hold Right Alt to
+  talk", from the code), and the mic has it as `aria-keyshortcuts`. That
+  names a key by its `KeyboardEvent.key`, with no side ("AltRight" is
+  "Alt"), so the label is the one that names it exactly:
 
   ```tsx
   <ComposerVoice

@@ -187,7 +187,12 @@ function Demo({
             shortcut={shortcut}
             ready={ready}
             holdToTalk={holdToTalk}
-            labels={shortcut ? { shortcut: "Hold Right ⌥ to talk" } : undefined}
+            // The app's words for its key; any other, the default.
+            labels={
+              shortcut === "AltRight"
+                ? { shortcut: "Hold Right ⌥ to talk" }
+                : undefined
+            }
             inputs={inputs}
             input={input}
             onInputChange={(id) => {
@@ -803,7 +808,9 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 export const ShortcutHeld: Story = {
   args: { shortcut: "AltRight", live: true, heard: 6, submitOnFinish: "hold" },
   play: async ({ args }) => {
+    // aria-keyshortcuts has no side for a key; the description does.
     await expect(micOf()).toHaveAttribute("aria-keyshortcuts", "Alt")
+    await expect(micOf()).toHaveAccessibleDescription("Hold Right ⌥ to talk")
     await userEvent.hover(micOf())
     await waitFor(() =>
       expect(tooltipOf()).toHaveTextContent("Hold Right ⌥ to talk")
@@ -823,6 +830,23 @@ export const ShortcutHeld: Story = {
     await wait(400)
     await user.keyboard("[/AltRight]")
     await waitFor(() => expect(args.onSubmit).toHaveBeenCalled())
+  },
+}
+
+/**
+ * No `labels.shortcut`: the tooltip and the description still name the
+ * key exactly, from its code, as `aria-keyshortcuts` cannot.
+ */
+export const ShortcutDefaultLabel: Story = {
+  tags: ["!autodocs"],
+  args: { shortcut: "ControlRight" },
+  play: async () => {
+    await expect(micOf()).toHaveAttribute("aria-keyshortcuts", "Control")
+    await expect(micOf()).toHaveAccessibleDescription("Hold Right Ctrl to talk")
+    await userEvent.hover(micOf())
+    await waitFor(() =>
+      expect(tooltipOf()).toHaveTextContent("Hold Right Ctrl to talk")
+    )
   },
 }
 
