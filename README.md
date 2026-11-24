@@ -156,7 +156,7 @@ For a side panel, or over the whole window.
 | `copy-button`       | An icon button that copies a value and says so.                                    |
 | `floating-button`   | A round button floating over content, e.g. jump to end.                            |
 | `status-mark`       | A status as a small mark: a dot, ring or diamond, or a spinner.                    |
-| `usage-meter`       | How much is used, as a ring or a bar.                                              |
+| `usage-meter`       | How much is used, as a ring, two concentric rings or a bar.                        |
 | `usage-summary`     | What a run used and cost, by unit, each amount saying how far it is to be trusted. |
 | `connection`        | Connections to services, read: a list of their status and one's details.           |
 | `stat`              | Headline numbers and facts of a page.                                              |

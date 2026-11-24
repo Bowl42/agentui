@@ -93,11 +93,107 @@ const partGreys = [
   "bg-foreground/60",
 ]
 
-/** The meter's picture alone: a ring or a bar, filled in the foreground. */
+/**
+ * Concentric rings, outermost first, in a ring's 16px: a meter each,
+ * e.g. a plan's weekly limit outside and its five hours' inside. Two at
+ * most, 1.5px strokes 1.5px apart: a third, at 16px, blurs into the
+ * others on a 1x screen. More are neither drawn nor said; show them in
+ * a `UsageMeterList`.
+ */
+type UsageMeterRings = {
+  rings: readonly UsageMeterListEntry[]
+  variant?: "ring" | undefined
+  value?: undefined
+  min?: undefined
+  max?: undefined
+  tone?: undefined
+}
+
+// The rings drawn: two at most.
+const maxRings = 2
+const ringsOf = (rings: readonly UsageMeterListEntry[]) =>
+  rings.slice(0, maxRings)
+
+// Each ring's radius and stroke in the 16 box, by how many there are,
+// outermost first: the outer at the box's edge, a gap between each.
+const ringGeometry: Record<number, readonly { r: number; width: number }[]> = {
+  1: [{ r: 6.5, width: 2.5 }],
+  // 6.5–8 and 3.5–5: 1.5 apart, a 7px hole.
+  2: [
+    { r: 7.25, width: 1.5 },
+    { r: 4.25, width: 1.5 },
+  ],
+}
+
+/** A ring's track and fill, as its tone says. */
+function UsageMeterRing({
+  share,
+  tone,
+  r,
+  width,
+}: {
+  share: number
+  tone: NonNullable<UsageMeterProps["tone"]>
+  r: number
+  width: number
+}) {
+  const length = 2 * Math.PI * r
+  return (
+    <g data-slot="usage-meter-ring" data-tone={tone}>
+      <circle
+        cx="8"
+        cy="8"
+        r={r}
+        strokeWidth={width}
+        className="stroke-foreground/15"
+      />
+      <circle
+        cx="8"
+        cy="8"
+        r={r}
+        strokeWidth={width}
+        strokeLinecap={share > 0 ? "round" : "butt"}
+        strokeDasharray={`${share * length} ${length}`}
+        className={cn("transition-[stroke-dasharray]", toneStroke[tone])}
+      />
+    </g>
+  )
+}
+
+/**
+ * The meter's picture alone: a ring or a bar, filled in the foreground;
+ * or, with `rings`, concentric rings in the ring's place.
+ */
 function UsageMeterGraphic({
   className,
   ...meter
-}: UsageMeterProps & { className?: string | undefined }) {
+}: ((UsageMeterProps & { rings?: undefined }) | UsageMeterRings) & {
+  className?: string | undefined
+}) {
+  if (meter.rings) {
+    const rings = ringsOf(meter.rings)
+    const geometry = ringGeometry[Math.max(1, rings.length)]!
+    return (
+      <svg
+        aria-hidden="true"
+        data-slot="usage-meter-graphic"
+        data-variant="rings"
+        data-rings={rings.length}
+        viewBox="0 0 16 16"
+        fill="none"
+        className={cn("size-4 shrink-0 -rotate-90", className)}
+      >
+        {rings.map((ring, index) => (
+          <UsageMeterRing
+            key={ring.key ?? ring.label}
+            share={shareOf(ring)}
+            tone={ring.tone ?? "default"}
+            {...geometry[index]!}
+          />
+        ))}
+      </svg>
+    )
+  }
   const share = shareOf(meter)
   const tone = meter.tone ?? "default"
   if (meter.variant === "bar")
@@ -122,7 +218,7 @@ function UsageMeterGraphic({
         />
       </span>
     )
-  // A circle of radius 6.5 in a 16 box: its length, 2π × 6.5.
+  // A circle of radius 6.5 in a 16 box.
   const length = 2 * Math.PI * 6.5
   return (
     <svg
@@ -154,31 +250,86 @@ function UsageMeterGraphic({
   )
 }
 
+// What a ring says: its label and value, "Weekly: 41% used".
+const ringText = (ring: UsageMeterListEntry) =>
+  `${ring.label}: ${ring.valueText}`
+
+/** Each ring a meter to a screen reader, unseen: its name and value. */
+function UsageMeterRingMeters({
+  rings,
+}: {
+  rings: readonly UsageMeterListEntry[]
+}) {
+  return ringsOf(rings).map((ring) => (
+    <MeterPrimitive.Root
+      key={ring.key ?? ring.label}
+      value={ring.value}
+      min={ring.min ?? 0}
+      max={ring.max ?? 100}
+      aria-label={ring.label}
+      aria-valuetext={ring.valueText}
+      className="sr-only"
+    />
+  ))
+}
+
 /**
  * How much of something is used, as a meter: a ring or a bar, its value
  * said to a screen reader (`label`, `valueText`), the app's words after
- * it (`children`). On its own, or in a `Badge`.
+ * it (`children`). On its own, or in a `Badge`. With `rings`, several in
+ * a ring's place, outermost first: a group named by `label`, each ring a
+ * meter of its own, its label and value said.
  */
-function UsageMeter({
-  value,
-  min = 0,
-  max = 100,
-  variant = "ring",
-  tone = "default",
-  label,
-  valueText,
-  className,
-  children,
-  ...props
-}: Omit<MeterPrimitive.Root.Props, "value" | "min" | "max" | "children"> &
-  UsageMeterProps & {
-    /** Its name: what is measured, "Requests today". */
-    label: string
-    /** Its value, said: "82 of 100". By default a percentage. */
-    valueText?: string | undefined
-    /** Shown after it: "82%". */
-    children?: React.ReactNode
-  }) {
+function UsageMeter(
+  props:
+    | (Omit<MeterPrimitive.Root.Props, "value" | "min" | "max" | "children"> &
+        UsageMeterProps & {
+          rings?: undefined
+          /** Its name: what is measured, "Requests today". */
+          label: string
+          /** Its value, said: "82 of 100". By default a percentage. */
+          valueText?: string | undefined
+          /** Shown after it: "82%". */
+          children?: React.ReactNode
+        })
+    | (Omit<React.ComponentProps<"div">, "children"> &
+        Omit<UsageMeterRings, "variant"> & {
+          /** The group's name: "Plan limits". */
+          label: string
+          valueText?: undefined
+          /** Shown after it. */
+          children?: React.ReactNode
+        })
+) {
+  if (props.rings) {
+    const { rings, label, className, children, ...rest } = props
+    return (
+      <div
+        role="group"
+        data-slot="usage-meter"
+        data-variant="rings"
+        aria-label={label}
+        className={cn("inline-flex items-center gap-2 tabular-nums", className)}
+        {...rest}
+      >
+        <UsageMeterGraphic rings={rings} />
+        <UsageMeterRingMeters rings={rings} />
+        {children}
+      </div>
+    )
+  }
+  const {
+    value,
+    min = 0,
+    max = 100,
+    variant = "ring",
+    tone = "default",
+    label,
+    valueText,
+    className,
+    children,
+    ...rest
+  } = props
   return (
     <MeterPrimitive.Root
       data-slot="usage-meter"
@@ -188,7 +339,7 @@ function UsageMeter({
       aria-label={label}
       {...(valueText !== undefined ? { "aria-valuetext": valueText } : {})}
       className={cn("inline-flex items-center gap-2 tabular-nums", className)}
-      {...props}
+      {...rest}
     >
       <UsageMeterGraphic
         value={value}
@@ -211,16 +362,17 @@ function UsageMeter({
  * composer's toolbar, it opens 8px above the group, not over its text.
  */
 function UsageMeterBreakdown({
-  value,
+  value = 0,
   min = 0,
   max = 100,
   variant = "ring",
   tone = "default",
+  rings,
   label,
   valueText,
   title,
   description,
-  rows,
+  rows = [],
   actions,
   footer,
   children,
@@ -236,16 +388,28 @@ function UsageMeterBreakdown({
   React.ComponentProps<typeof Button>,
   "value" | "children" | "title" | "variant" | "size"
 > &
-  UsageMeterProps & {
+  (
+    | (UsageMeterProps & {
+        rings?: undefined
+        /** Its value, said, and at the title's end: "62k of 200k". */
+        valueText: string
+      })
+    | (UsageMeterRings & {
+        /** At the title's end, if any; each ring says its own. */
+        valueText?: string | undefined
+      })
+  ) & {
     /** What is measured: the button's name, and the popover's title. */
     label: string
-    /** Its value, said, and at the title's end: "62k of 200k". */
-    valueText: string
     /** The popover's title, by default `label`. */
     title?: React.ReactNode
     /** At the title's end, by default `valueText`. */
     description?: React.ReactNode
-    rows: readonly UsageMeterRow[]
+    /**
+     * Under its bar (with `rings`, a bar each, as a `UsageMeterList`):
+     * the app's rows of label and value.
+     */
+    rows?: readonly UsageMeterRow[] | undefined
     /** Under the rows, a line above them: rows that act, a button or a switch. */
     actions?: readonly UsageMeterAction[] | undefined
     /** At its end: e.g. a note, or a button of the app's own. */
@@ -288,22 +452,35 @@ function UsageMeterBreakdown({
             variant="ghost"
             size={children ? "sm" : "icon-sm"}
             // Named by what is measured and its value; with words of
-            // the app's, by them, which the reader sees.
-            {...(children ? {} : { "aria-label": `${label}: ${valueText}` })}
+            // the app's, by them, which the reader sees. Rings say
+            // each ring's label and value, and then the app's words.
+            {...(children || rings
+              ? {}
+              : { "aria-label": `${label}: ${valueText}` })}
             data-slot="usage-meter-breakdown"
             className={cn("tabular-nums", className)}
             {...props}
           />
         }
       >
-        {children && <span className="sr-only">{`${label}: `}</span>}
-        <UsageMeterGraphic
-          value={value}
-          min={min}
-          max={max}
-          variant={variant}
-          tone={tone}
-        />
+        {rings ? (
+          <span className="sr-only">
+            {`${label}: ${ringsOf(rings).map(ringText).join(", ")}${children ? ", " : ""}`}
+          </span>
+        ) : (
+          children && <span className="sr-only">{`${label}: `}</span>
+        )}
+        {rings ? (
+          <UsageMeterGraphic rings={rings} />
+        ) : (
+          <UsageMeterGraphic
+            value={value}
+            min={min}
+            max={max}
+            variant={variant}
+            tone={tone}
+          />
+        )}
         {children && <span data-slot="usage-meter-value">{children}</span>}
       </PopoverTrigger>
       <PopoverContent
@@ -330,76 +507,89 @@ function UsageMeterBreakdown({
           <PopoverTitle className="text-2xs text-subtle-foreground">
             {title ?? label}
           </PopoverTitle>
-          <PopoverDescription className="text-2xs tabular-nums">
-            {description ?? valueText}
-          </PopoverDescription>
-        </PopoverHeader>
-        <MeterPrimitive.Root
-          value={value}
-          min={min}
-          max={max}
-          aria-label={label}
-          aria-valuetext={valueText}
-          data-slot="usage-meter"
-          className="shrink-0 px-2 pt-1 pb-3"
-        >
-          {parts ? (
-            <span
-              aria-hidden="true"
-              data-slot="usage-meter-graphic"
-              data-variant="parts"
-              // grid: mark
-              className="flex h-1.5 w-full gap-px overflow-hidden rounded-full bg-muted"
-            >
-              {rows.map((row, index) =>
-                row.amount ? (
-                  <span
-                    key={row.key ?? index}
-                    className={cn(
-                      "h-full",
-                      partGreys[index % partGreys.length]
-                    )}
-                    style={{
-                      width: `${span > 0 ? Math.max(0, (row.amount / span) * 100) : 0}%`,
-                    }}
-                  />
-                ) : null
-              )}
-            </span>
-          ) : (
-            <UsageMeterGraphic
-              value={value}
-              min={min}
-              max={max}
-              variant="bar"
-              tone={tone}
-              className="w-full"
-            />
+          {(description ?? valueText) !== undefined && (
+            <PopoverDescription className="text-2xs tabular-nums">
+              {description ?? valueText}
+            </PopoverDescription>
           )}
-        </MeterPrimitive.Root>
-        <dl
-          ref={rowsRef}
-          data-slot="usage-meter-rows"
-          {...(scrolls ? { tabIndex: 0, "aria-label": label } : {})}
-          // As wide as the popover, for a separator's line to its edges.
-          className="-mx-1 flex min-h-0 flex-col overflow-y-auto overscroll-contain px-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          {rows.map((row, index) => (
-            <div
-              key={row.key ?? index}
-              data-slot="usage-meter-row"
-              className={cn(
-                "flex h-7 items-center gap-2 px-2 text-2sm text-muted-foreground",
-                row.separator && "-mx-1 mt-1 h-8 border-t px-3 pt-1"
-              )}
-            >
-              <dt className="min-w-0 flex-1 truncate">{row.label}</dt>
-              <dd className="shrink-0 text-end text-xs text-subtle-foreground tabular-nums">
-                {row.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        </PopoverHeader>
+        {rings ? (
+          <UsageMeterList
+            meters={ringsOf(rings)}
+            className="shrink-0 px-2 pt-1 pb-3"
+          />
+        ) : (
+          <MeterPrimitive.Root
+            value={value}
+            min={min}
+            max={max}
+            aria-label={label}
+            {...(valueText !== undefined
+              ? { "aria-valuetext": valueText }
+              : {})}
+            data-slot="usage-meter"
+            className="shrink-0 px-2 pt-1 pb-3"
+          >
+            {parts ? (
+              <span
+                aria-hidden="true"
+                data-slot="usage-meter-graphic"
+                data-variant="parts"
+                // grid: mark
+                className="flex h-1.5 w-full gap-px overflow-hidden rounded-full bg-muted"
+              >
+                {rows.map((row, index) =>
+                  row.amount ? (
+                    <span
+                      key={row.key ?? index}
+                      className={cn(
+                        "h-full",
+                        partGreys[index % partGreys.length]
+                      )}
+                      style={{
+                        width: `${span > 0 ? Math.max(0, (row.amount / span) * 100) : 0}%`,
+                      }}
+                    />
+                  ) : null
+                )}
+              </span>
+            ) : (
+              <UsageMeterGraphic
+                value={value}
+                min={min}
+                max={max}
+                variant="bar"
+                tone={tone}
+                className="w-full"
+              />
+            )}
+          </MeterPrimitive.Root>
+        )}
+        {rows.length > 0 && (
+          <dl
+            ref={rowsRef}
+            data-slot="usage-meter-rows"
+            {...(scrolls ? { tabIndex: 0, "aria-label": label } : {})}
+            // As wide as the popover, for a separator's line to its edges.
+            className="-mx-1 flex min-h-0 flex-col overflow-y-auto overscroll-contain px-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            {rows.map((row, index) => (
+              <div
+                key={row.key ?? index}
+                data-slot="usage-meter-row"
+                className={cn(
+                  "flex h-7 items-center gap-2 px-2 text-2sm text-muted-foreground",
+                  row.separator && "-mx-1 mt-1 h-8 border-t px-3 pt-1"
+                )}
+              >
+                <dt className="min-w-0 flex-1 truncate">{row.label}</dt>
+                <dd className="shrink-0 text-end text-xs text-subtle-foreground tabular-nums">
+                  {row.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
         {actions && actions.length > 0 && (
           <div
             data-slot="usage-meter-actions"
@@ -556,6 +746,7 @@ export {
   UsageMeterGraphic,
   UsageMeterList,
   type UsageMeterListEntry,
+  type UsageMeterRings,
   type UsageMeterAction,
   type UsageMeterRow,
 }

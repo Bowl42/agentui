@@ -113,6 +113,23 @@ const levels = [
   0.3, 0.1,
 ]
 
+/** A plan's limits, a week's outside and five hours' inside. */
+const planLimits = [
+  {
+    label: "Weekly",
+    value: 41,
+    valueText: "41% used",
+    detail: "Resets Mon 09:00",
+  },
+  {
+    label: "5 hours",
+    value: 78,
+    valueText: "78% used",
+    detail: "Resets in 1h 12m",
+    tone: "warning" as const,
+  },
+]
+
 /**
  * The design's toolbar, each tool working on its own state. With
  * `options`, a phone folds permissions and the context meter into the
@@ -127,8 +144,11 @@ function FullToolbar({
 }: {
   /** Why it cannot send, before the send button. */
   reason?: string | undefined
-  /** Whether the context meter shows. */
-  usage?: boolean
+  /**
+   * Whether the context meter shows; `rings`, a plan's limits instead,
+   * as two rings.
+   */
+  usage?: boolean | "rings"
   /** Whether a phone folds permissions and usage into the options sheet. */
   options?: boolean
   /** An app's own tools after the model, e.g. an account picker. */
@@ -153,29 +173,37 @@ function FullToolbar({
   const Fold = options ? ComposerOptionsFold : React.Fragment
   const modeFold = compact ? { compact: true } : {}
   const meterFold = compact ? { keep: true } : {}
-  const meter = usage ? (
-    <UsageMeterBreakdown
-      variant="bar"
-      value={38}
-      label="Context"
-      valueText="76k of 200k"
-      rows={[
-        { label: "System and tools", value: "28k", amount: 14 },
-        { label: "Messages", value: "36k", amount: 18 },
-        { label: "Files", value: "12k", amount: 6 },
-        { label: "This conversation", value: "$0.42", separator: true },
-        { label: "Weekly quota", value: "61% · resets Mon" },
-      ]}
-      footer={
-        <Button variant="outline" size="sm" className="w-full">
-          Compact now
-        </Button>
-      }
-      className="ms-auto"
-    >
-      38%
-    </UsageMeterBreakdown>
-  ) : null
+  const meter =
+    usage === "rings" ? (
+      <UsageMeterBreakdown
+        rings={planLimits}
+        label="Plan limits"
+        rows={[{ label: "Plan", value: "Pro" }]}
+        className="ms-auto"
+      />
+    ) : usage ? (
+      <UsageMeterBreakdown
+        variant="bar"
+        value={38}
+        label="Context"
+        valueText="76k of 200k"
+        rows={[
+          { label: "System and tools", value: "28k", amount: 14 },
+          { label: "Messages", value: "36k", amount: 18 },
+          { label: "Files", value: "12k", amount: 6 },
+          { label: "This conversation", value: "$0.42", separator: true },
+          { label: "Weekly quota", value: "61% · resets Mon" },
+        ]}
+        footer={
+          <Button variant="outline" size="sm" className="w-full">
+            Compact now
+          </Button>
+        }
+        className="ms-auto"
+      >
+        38%
+      </UsageMeterBreakdown>
+    ) : null
   return (
     <ComposerToolbar>
       <ComposerAttach>
@@ -246,7 +274,14 @@ function FullToolbar({
           >
             Thinking
           </ComposerOptionsItem>
-          {usage ? (
+          {usage === "rings" ? (
+            <ComposerOptionsItem
+              icon={<UsageMeterGraphic rings={planLimits} />}
+              value="41% · 78%"
+            >
+              Plan limits
+            </ComposerOptionsItem>
+          ) : usage ? (
             <ComposerOptionsItem
               icon={<UsageMeterGraphic value={38} variant="bar" />}
               value="76k of 200k"
@@ -268,4 +303,4 @@ function FullToolbar({
   )
 }
 
-export { FullToolbar, toolbarModels }
+export { FullToolbar, planLimits, toolbarModels }

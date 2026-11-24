@@ -2753,6 +2753,29 @@ greys; every word is the app's.
 - `variant`: `ring` (16px, e.g. beside the composer's buttons) or
   `bar`. `min` and `max` are 0 and 100 by default; `valueText` is what a
   screen reader says (by default a percentage).
+- `rings`: several meters as concentric rings in the ring's 16px,
+  outermost first, each a `UsageMeterListEntry` (`label`, `value`,
+  `valueText`, `tone`, `detail`), e.g. a plan's limits, the week's
+  outside and five hours' inside. Two at most (1.5px strokes 1.5px
+  apart; a third blurs at 16px on a 1x screen, so more are neither
+  drawn nor said: show them in a `UsageMeterList`). `UsageMeter` is
+  then a group named by `label`, each ring a meter, its label and value
+  said; `UsageMeterGraphic` takes `rings` too. `UsageMeterBreakdown`
+  with `rings` is named by `label` and each ring ("Plan limits: Weekly:
+  41% used, 5 hours: 78% used"), then its `children`; its popover shows
+  them as a `UsageMeterList` in place of the bar, then `rows` (optional
+  here), and `valueText` is optional.
+
+  ```tsx
+  <UsageMeterBreakdown
+    label="Plan limits"
+    rings={[
+      { label: "Weekly", value: 41, valueText: "41% used", detail: "Resets Mon 09:00" },
+      { label: "5 hours", value: 78, valueText: "78% used", tone: "warning" },
+    ]}
+  />
+  ```
+
 - `UsageMeterBreakdown`: a ghost button with the meter and `children`,
   named by `label` and them ("Tokens: 31%"), or by `label` and
   `valueText` with none. Its popover: `title` (by default `label`),
