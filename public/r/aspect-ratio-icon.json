@@ -1,0 +1,17 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "aspect-ratio-icon",
+  "title": "Aspect Ratio Icon",
+  "description": "A shape's aspect ratio as an icon, such as beside \"16:9\" in a choice of an image's or video's size: a frame of that shape, its long side the icon's; a ratio it cannot read (e.g. \"auto\") is a dashed square. Sized and coloured as Hugeicons' icons are, in buttons, menus and toggles.",
+  "dependencies": [
+    "cn"
+  ],
+  "files": [
+    {
+      "path": "src/components/aspect-ratio-icon.tsx",
+      "content": "import * as React from \"react\"\nimport { cn } from \"cn\"\n\n/** A ratio's width and height, from \"16:9\", \"16/9\", \"16x9\" or 1.78. */\nfunction parseRatio(\n  ratio: string | number | undefined\n): { width: number; height: number } | undefined {\n  if (typeof ratio === \"number\")\n    return Number.isFinite(ratio) && ratio > 0\n      ? { width: ratio, height: 1 }\n      : undefined\n  const [width, height, ...rest] = (ratio ?? \"\")\n    .split(/\\s*[:/x×]\\s*/)\n    .map(Number)\n  if (rest.length > 0 || width === undefined || height === undefined)\n    return undefined\n  return width > 0 && height > 0 ? { width, height } : undefined\n}\n\n/**\n * A shape's aspect ratio as an icon, e.g. beside \"16:9\" in a choice of\n * an image's or video's size: a frame of that shape, its long side the\n * icon's. A ratio it cannot read (e.g. \"auto\", to follow the source) is a\n * dashed square. An icon as Hugeicons' are, so it sizes and colours as they\n * do in buttons, menus and toggles, and is hidden from screen readers:\n * the ratio's text names it.\n */\nfunction AspectRatioIcon({\n  ratio,\n  className,\n  ...props\n}: Omit<React.ComponentProps<\"svg\">, \"children\"> & {\n  ratio: string | number | undefined\n}) {\n  const known = parseRatio(ratio)\n  // In Hugeicons' 24 × 24, its frame inside the same 2 of margin.\n  const long = 20\n  const short = 6\n  const scale = known ? long / Math.max(known.width, known.height) : 0\n  const width = known ? Math.max(short, known.width * scale) : 16\n  const height = known ? Math.max(short, known.height * scale) : 16\n  return (\n    <svg\n      data-slot=\"aspect-ratio-icon\"\n      data-ratio={known ? `${known.width}:${known.height}` : undefined}\n      xmlns=\"http://www.w3.org/2000/svg\"\n      viewBox=\"0 0 24 24\"\n      width={24}\n      height={24}\n      fill=\"none\"\n      stroke=\"currentColor\"\n      strokeWidth={2}\n      strokeLinejoin=\"round\"\n      aria-hidden=\"true\"\n      className={cn(\"shrink-0\", className)}\n      {...props}\n    >\n      <rect\n        x={(24 - width) / 2}\n        y={(24 - height) / 2}\n        width={width}\n        height={height}\n        rx={2}\n        strokeDasharray={known ? undefined : \"3 3\"}\n      />\n    </svg>\n  )\n}\n\nexport { AspectRatioIcon, parseRatio }\n",
+      "type": "registry:component"
+    }
+  ],
+  "type": "registry:component"
+}
