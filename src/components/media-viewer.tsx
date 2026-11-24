@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Slider } from "@/components/ui/slider"
 import { CopyButton, type CopyData } from "@/components/copy-button"
+import { useFullScreen } from "@/lib/full-screen"
 import {
   ImageComparison,
   type ImageComparisonLabels,
@@ -646,6 +647,7 @@ function VideoView({
   const { ref: mediaRef, media } = useMedia<HTMLVideoElement>()
   const { state, actions } = media
   const stage = React.useRef<HTMLDivElement>(null)
+  const fullScreen = useFullScreen(stage)
   const duration = Number.isFinite(state.duration) ? state.duration : 0
   const element = useMediaElement(mediaRef, mediaProps, {
     src,
@@ -703,7 +705,7 @@ function VideoView({
           <MediaBar
             media={media}
             labels={labels}
-            onFullScreen={() => void stage.current?.requestFullscreen?.()}
+            onFullScreen={fullScreen}
             preview={(fraction) => (
               <SeekPreview
                 src={src}

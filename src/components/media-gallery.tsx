@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/tooltip"
 import { CopyButton, type CopyData } from "@/components/copy-button"
 import { FloatingButton } from "@/components/floating-button"
+import { useFullScreen } from "@/lib/full-screen"
 import {
   MediaBar,
   defaultMediaViewerLabels,
@@ -809,6 +810,7 @@ function PlayerItem({
     })
   )
   const frame = React.useRef<HTMLDivElement>(null)
+  const fullScreen = useFullScreen(frame)
 
   return (
     <Attachment
@@ -868,7 +870,7 @@ function PlayerItem({
               labels={labels}
               duration={duration}
               className="inset-x-2 bottom-2 h-9"
-              onFullScreen={() => void frame.current?.requestFullscreen?.()}
+              onFullScreen={fullScreen}
             />
           )}
         </div>

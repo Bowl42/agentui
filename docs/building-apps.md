@@ -4278,7 +4278,11 @@ perf`). A level changed in place is not seen.
   then clears; its URL must be the page's to use, e.g. a blob's.
 - Video: on black, its controls over it in the dark theme's colours in
   either (play, the time, a seek bar that shows the frame under the
-  pointer, mute, full screen). Its size and length below.
+  pointer, mute, full screen). Its size and length below. Where the
+  Fullscreen API is missing (an iPhone's WebKit, a web view without
+  element full screen), full screen is the video alone in the system's
+  player (`webkitEnterFullscreen`); with neither, there is no full
+  screen button. A `media-gallery` video's is the same.
 - Audio: a play button, its title; the waveform of the app's `peaks` is
   a slider (a click or a drag, the arrow keys 5 seconds, Home and End),
   the bars played filled. The transcript's line being said is lit
