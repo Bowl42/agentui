@@ -5,6 +5,23 @@ import type { BrowserCommand } from "vitest/node"
 import viteConfig from "./vite.config.ts"
 import { firefoxLaunchOptions } from "./vitest.firefox.ts"
 
+/**
+ * The real mouse, as a reader's: its button `down` or `up`, or `move`d,
+ * over the middle of the first element `selector` finds in the test
+ * page (none given, where it is).
+ */
+const mouse: BrowserCommand<
+  [action: "down" | "up" | "move", selector?: string]
+> = async ({ page, iframe }, action, selector) => {
+  if (selector) {
+    const box = await iframe.locator(selector).first().boundingBox()
+    if (!box) throw new Error(`Nothing to point at: ${selector}`)
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  }
+  if (action === "down") await page.mouse.down()
+  else if (action === "up") await page.mouse.up()
+}
+
 /** Turns Windows high contrast emulation on or off for the test page. */
 const emulateForcedColors: BrowserCommand<[active: boolean]> = async (
   { page },
@@ -54,8 +71,8 @@ export default mergeConfig(
         },
         {
           // What needs the browser's own input (a real wheel, which
-          // WebKit scrolls on a thread of its own), in Chromium and
-          // WebKit.
+          // WebKit scrolls on a thread of its own; a real mouse held),
+          // in Chromium and WebKit.
           extends: true,
           test: {
             name: "input",
@@ -66,6 +83,7 @@ export default mergeConfig(
               viewport: { width: 1280, height: 800 },
               provider: playwright(),
               instances: [{ browser: "chromium" }, { browser: "webkit" }],
+              commands: { mouse },
             },
           },
         },
