@@ -16,6 +16,7 @@ import {
   type MathPlugin,
   defaultComponents,
   defaultRehypePlugins,
+  parseMarkdownIntoBlocks,
   type ExtraProps,
   Streamdown,
   type StreamdownProps,
@@ -771,6 +772,35 @@ function MarkdownMath({
       {content}
     </span>
   )
+}
+
+/**
+ * Its blocks parsed again from the second-last block on, the rest kept:
+ * an answer streaming in grows at its end, so all but its last blocks are
+ * as they were. Streamdown splits the whole text each update otherwise,
+ * 256 KiB of it for a long answer. Whole where that would not be the
+ * same: footnotes (their references join the text into one block), or
+ * text that did not grow from what was split.
+ */
+function useStreamedBlocks() {
+  const last = React.useRef<{ text: string; blocks: string[] } | null>(null)
+  return React.useCallback((text: string) => {
+    const was = last.current
+    let blocks: string[] | undefined
+    if (was && was.blocks.length > 2 && !text.includes("[^")) {
+      const keep = was.blocks.length - 2
+      let at = 0
+      for (let index = 0; index < keep; index++) at += was.blocks[index]!.length
+      if (text.startsWith(was.text.slice(0, at)))
+        blocks = [
+          ...was.blocks.slice(0, keep),
+          ...parseMarkdownIntoBlocks(text.slice(at)),
+        ]
+    }
+    blocks ??= parseMarkdownIntoBlocks(text)
+    last.current = { text, blocks }
+    return blocks
+  }, [])
 }
 
 /** Short digests of plugin options, by the object, made once. */
@@ -1550,7 +1580,7 @@ const components: Components = {
  * never with reduced motion or when a finished message opens; a table
  * comes a whole row at a time, each fading in.
  */
-function Markdown({
+function MarkdownRoot({
   className,
   components: own,
   labels,
@@ -1679,6 +1709,7 @@ function Markdown({
     ]
   )
   const streaming = props.isAnimating && props.mode !== "static"
+  const streamedBlocks = useStreamedBlocks()
   return (
     <MarkdownContext.Provider value={context}>
       <Streamdown
@@ -1707,6 +1738,7 @@ function Markdown({
           className
         )}
         components={merged}
+        {...(streaming && { parseMarkdownIntoBlocksFn: streamedBlocks })}
         {...props}
         rehypePlugins={rehypePlugins}
         {...(streaming &&
@@ -1720,6 +1752,15 @@ function Markdown({
     </MarkdownContext.Provider>
   )
 }
+
+/**
+ * Rendered again only when its props change: an answer already done,
+ * its text the same, is not parsed or rendered again as a conversation
+ * that maps all its turns each update renders around it. (Pass props that
+ * keep their identity, as `components` and `labels` from a constant or a
+ * memo, for this to hold.)
+ */
+const Markdown = React.memo(MarkdownRoot)
 
 export {
   Markdown,

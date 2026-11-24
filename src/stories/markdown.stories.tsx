@@ -1687,3 +1687,89 @@ export const AppLinks: Story = {
     await expect(canvas.getByText(/\[blocked\]/)).toBeVisible()
   },
 }
+
+const streamedDoc = `# Release notes
+
+The build now **splits vendor code** once, and skips what nothing
+imports.
+
+- Faster cold starts
+- Smaller bundles
+
+  with a second paragraph in the item
+
+\`\`\`ts
+export default defineConfig({
+  build: { cssCodeSplit: true },
+})
+\`\`\`
+
+> A quote over
+> two lines
+
+| Step | Time |
+| ---- | ---- |
+| Build | 12s |
+| Test | 40s |
+
+1. one
+2. two
+
+Setext heading
+--------------
+
+And a last paragraph with \`code\` and a [link](https://example.com).`
+
+/** Two streamed answers: one updated in place, one mounted afresh each step. */
+function StreamedTwice({ length }: { length: number }) {
+  const text = streamedDoc.slice(0, length)
+  return (
+    <div className="grid grid-cols-2 gap-6">
+      <div data-testid="kept">
+        <Markdown isAnimating>{text}</Markdown>
+      </div>
+      <div data-testid="fresh">
+        <Markdown key={length} isAnimating>
+          {text}
+        </Markdown>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Streamed, an answer splits again only its last blocks, keeping the
+ * rest: each step renders as the same text split whole does.
+ */
+export const StreamedBlocks: Story = {
+  tags: ["!autodocs"],
+  parameters: { conversation: true },
+  render: function Render() {
+    const [length, setLength] = React.useState(0)
+    React.useEffect(() => {
+      if (length >= streamedDoc.length) return
+      const timer = setTimeout(() => setLength((was) => was + 9), 0)
+      return () => clearTimeout(timer)
+    }, [length])
+    return (
+      <div data-length={length}>
+        <StreamedTwice length={length} />
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const root = canvasElement.querySelector<HTMLElement>("[data-length]")!
+    const html = (id: string) =>
+      canvasElement
+        .querySelector(`[data-testid=${id}] [data-slot=markdown]`)!
+        .innerHTML.replace(/_r_[\w]+_/g, "id")
+    let seen = -1
+    while (Number(root.dataset.length) < streamedDoc.length) {
+      await waitFor(() =>
+        expect(Number(root.dataset.length)).toBeGreaterThan(seen)
+      )
+      seen = Number(root.dataset.length)
+      await expect(html("kept")).toBe(html("fresh"))
+    }
+  },
+}

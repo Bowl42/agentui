@@ -5,7 +5,7 @@ import { commands, server } from "vitest/browser"
 import { AgentTurn } from "@/components/agent-turn"
 import { Markdown } from "@/components/markdown"
 
-import { frame, render, report, sync, time } from "./harness"
+import { frame, profile, render, report, sync, time } from "./harness"
 
 const chromium = server.browser === "chromium"
 
@@ -65,11 +65,16 @@ for (const turn of [false, true]) {
     render(<Live initial={prose} turn={turn} />)
     await frame()
     const samples: number[] = []
-    for (let index = 0; index < 100; index++) {
-      const next = prose.slice(0, -1) + (index % 2)
-      samples.push(time(() => sync(() => control.set!(next))))
-      await frame()
+    const run = async () => {
+      for (let index = 0; index < 100; index++) {
+        const next = prose.slice(0, -1) + (index % 2)
+        samples.push(time(() => sync(() => control.set!(next))))
+        await frame()
+      }
     }
+    if (chromium && import.meta.env.VITE_PROFILE)
+      await profile(`markdown-${turn}`, run)
+    else await run()
     report(`${name}, an update`, samples)
     console.log(`PERF ${name}: animations after 100 updates ${animations()}`)
   })
