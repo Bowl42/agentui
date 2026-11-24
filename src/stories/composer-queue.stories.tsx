@@ -560,10 +560,12 @@ export const From: Story = {
     await expect(over).toHaveTextContent(
       "Review agent in another session with a long name"
     )
+    // Within layout's rounding (a hundred-thousandth of a pixel over in
+    // Firefox and WebKit on Linux).
     await expect(over.getBoundingClientRect().bottom).toBeLessThanOrEqual(
       within(managed)
         .getByText(/^The login test fails/)
-        .getBoundingClientRect().top
+        .getBoundingClientRect().top + 0.01
     )
     await expect(
       within(managed).getByRole("link", { name: /^Review agent/ })

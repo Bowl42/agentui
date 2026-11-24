@@ -173,7 +173,9 @@ export const NoMatch: Story = {
   play: async () => {
     await open("Model: Opus 5.5")
     await userEvent.keyboard("zzz")
-    await expect(await screen.findByText("No models found")).toBeVisible()
+    const none = await screen.findByText("No models found")
+    // Once the popup has faded in.
+    await waitFor(() => expect(none).toBeVisible())
     // cmdk leaves its list without options meanwhile, which axe reports:
     // end with results.
     await userEvent.keyboard("{Backspace}{Backspace}{Backspace}")
