@@ -514,7 +514,7 @@
         "@hugeicons/react",
         "@hugeicons/core-free-icons"
       ],
-      "registryDependencies": ["Bowl42/agentui/button"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json"],
       "files": [
         {
           "path": "src/components/ui/calendar.tsx",
@@ -546,7 +546,7 @@
         "@hugeicons/react",
         "@hugeicons/core-free-icons"
       ],
-      "registryDependencies": ["Bowl42/agentui/button"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json"],
       "files": [
         {
           "path": "src/components/ui/carousel.tsx",
@@ -561,8 +561,8 @@
       "description": "shadcn/ui's base-nova code-block, fixed: the copy button takes labels for its name and its announcement, for other languages, says copied only while the value is the one copied, and says it could not copy when the clipboard refuses or the page has none (plain http, not a secure context) instead of throwing, output that streams in costs its new lines, not every line, to render and lay out (numbered too: blocks with the numbers in a gutter, not a grid of every line), a removed line's tint leaves coloured code (GitHub's red keywords) at 4.5:1, a diff is in greys (added lines a light grey with their +, removed ones struck through in the faintest grey on no tint, with their −), a line takes its own `number` (a diff's line in its file), code is 12px on 20px lines (an interface at 13px reads it so, not at the prose's 14px) and highlighted lines and pressed toggles show on the dark surface, the block has a hairline border and a card's corners, its header is a 36px bar over a divider with the title in grey mono, line numbers are a step lighter, in a gutter at least `--code-block-gutter-min` wide (24px by default), the copy button floating over the code is raised by shadow-float, the destructive block (failed output) is told in greys by weight, its text and title heavier, not red, the header's buttons and toggles are one size, the content fades at the edges it scrolls past, down as well as sideways, and is translate=\"no\", so a page translator leaves code and output as written. With `lines`, a block longer than that folds in its own card: those lines whole (a wrapped line counts each it takes, a diff's @@ lines are not counted), its last two fading out, and a bar across its foot inside its border, \"Show all · 30 lines\", that shows the rest; open, the bar folds it again, and its header sticks to the top of what scrolls with a button that folds it, the block's start kept in view. Its words are `labels` (more, less, lines, collapse); `open`, `defaultOpen` and `onOpenChange` control it. Lines are measured after layout by one ResizeObserver, only those up to the fold, so output streaming in stays cheap; focus or find in the page reaching the folded part opens it; copying copies it all. The lines past the fold can be one plain text (CodeBlockRest; CodeBlockContent's own text does it), hidden until found, so a folded block of thousands of lines costs the dozen it shows and find in the page still opens it; open, they become lines 250 at a time as they near the view, each where its text was, the text laid out only near the view (useCodeBlockCut and cutLines for the app's own lines). The block clips rather than hides its overflow, so the header can stick. Its spacing on the 4px module (docs/grid.md).",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/use-highlighted-code"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-highlighted-code.json"
       ],
       "files": [
         {
@@ -583,8 +583,8 @@
         "@hugeicons/core-free-icons"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/input-group"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input-group.json"
       ],
       "files": [
         {
@@ -605,8 +605,8 @@
         "@hugeicons/core-free-icons"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/dialog",
-        "Bowl42/agentui/input-group"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dialog.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input-group.json"
       ],
       "files": [
         {
@@ -626,7 +626,7 @@
         "@hugeicons/react",
         "@hugeicons/core-free-icons"
       ],
-      "registryDependencies": ["Bowl42/agentui/phone-sheet"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/phone-sheet.json"],
       "files": [
         {
           "path": "src/components/ui/context-menu.tsx",
@@ -646,8 +646,8 @@
         "@hugeicons/core-free-icons"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/use-overflow"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-overflow.json"
       ],
       "files": [
         {
@@ -663,8 +663,8 @@
       "description": "shadcn/ui's base-nova alert dialog, fixed: its footer's buttons sit under the content, without the ruled-off band, as Dialog's. Its spacing on the 4px module (docs/grid.md). It pops in and out by the theme's motion-pop (in at 150ms on --ease-enter, out at 100ms on --ease-exit), not shadcn's 100ms on `ease`. On a phone it is a sheet from the bottom as a dialog's, its footer kept at its foot, and on a short screen (short:) its buttons in a row.",
       "dependencies": ["@base-ui/react", "cn"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/dialog"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dialog.json"
       ],
       "files": [
         {
@@ -768,7 +768,7 @@
       "title": "Chart",
       "description": "shadcn/ui's base-nova chart, fixed: its tooltip 12px by 8px inside, 8px under its label, 4px between its rows; a swatch is sized as a glyph; reached by Tab (accessibilityLayer), a focus ring round it, the surface's own being hidden. Its spacing on the 4px module (docs/grid.md).",
       "dependencies": ["cn", "recharts@3.8.0"],
-      "registryDependencies": ["Bowl42/agentui/card"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/card.json"],
       "files": [
         {
           "path": "src/components/ui/chart.tsx",
@@ -827,7 +827,7 @@
         "@hugeicons/react",
         "@hugeicons/core-free-icons"
       ],
-      "registryDependencies": ["Bowl42/agentui/phone-sheet"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/phone-sheet.json"],
       "files": [
         {
           "path": "src/components/ui/dropdown-menu.tsx",
@@ -859,7 +859,7 @@
         "@hugeicons/react",
         "@hugeicons/core-free-icons"
       ],
-      "registryDependencies": ["Bowl42/agentui/dropdown-menu"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dropdown-menu.json"],
       "files": [
         {
           "path": "src/components/ui/menubar.tsx",
@@ -893,8 +893,8 @@
       "description": "shadcn/ui's base-nova popover, fixed: The theme's shadow-md and shadow-lg are shadow-float, so its popup drops shadcn's ring, which doubled the shadow's hairline. PopoverContent takes Base UI's anchor, for a popup whose trigger is hidden. On a phone (narrower than 640px) it opens as a sheet from the bottom, as the platform's action sheets do: across the screen over a scrim that closes it when tapped, a handle to swipe it down by, clear of the home indicator, and `sheetTitle` on top; it stays Base UI's popup, its roles, focus and keys. `sheet={false}` keeps it anchored. No wider or taller than there is room for, as a menu; what is taller scrolls, keyboard-reachable while it does. Its spacing on the 4px module (docs/grid.md). It pops in and out by the theme's motion-pop (in at 150ms on --ease-enter, out at 100ms on --ease-exit), not shadcn's 100ms on `ease`.",
       "dependencies": ["@base-ui/react", "cn"],
       "registryDependencies": [
-        "Bowl42/agentui/phone-sheet",
-        "Bowl42/agentui/use-overflow"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/phone-sheet.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-overflow.json"
       ],
       "files": [
         {
@@ -914,7 +914,7 @@
         "@hugeicons/react",
         "@hugeicons/core-free-icons"
       ],
-      "registryDependencies": ["Bowl42/agentui/phone-sheet"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/phone-sheet.json"],
       "files": [
         {
           "path": "src/components/ui/select.tsx",
@@ -933,7 +933,7 @@
         "@hugeicons/react",
         "@hugeicons/core-free-icons"
       ],
-      "registryDependencies": ["Bowl42/agentui/button"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json"],
       "files": [
         {
           "path": "src/components/ui/sheet.tsx",
@@ -952,7 +952,7 @@
         "@hugeicons/react",
         "@hugeicons/core-free-icons"
       ],
-      "registryDependencies": ["Bowl42/agentui/button"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json"],
       "files": [
         {
           "path": "src/components/ui/toast.tsx",
@@ -986,13 +986,13 @@
         "@hugeicons/core-free-icons"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/input",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input.json",
         "separator",
-        "Bowl42/agentui/sheet",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/sheet.json",
         "skeleton",
-        "Bowl42/agentui/tooltip",
-        "Bowl42/agentui/use-mobile"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-mobile.json"
       ],
       "files": [
         {
@@ -1008,9 +1008,9 @@
       "description": "What came to the agent from outside, neither the reader nor the agent speaking: a line of a stream it watches (kind monitor), a background task's end (task), a wake-up it had set (wake). One light grey pill at the conversation's start edge, as wide as it needs, 28px high (36px on a phone): its kind's icon, its source (the kind's word or the app's source), what it said cut short (whole on hover), when (time). With details (a task's report) it is a button opening the report under it in a bordered box that scrolls past 24rem, meta (what it cost, e.g. \"12 tool uses · 3m 20s\") at its foot, else at the line's end; status failed or stopped says so after its words, an alert or a stop before them, by weight, not a colour. In an AgentTurn it is a part ({ type: \"event\" }) where it came, never folded into a run of steps, events in a row close together; between turns, rendered itself. foldKey keeps it opened under a FoldProvider; its words are labels (in a turn, its labels.event, a part's own labels over them).",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/use-fold",
-        "Bowl42/agentui/search-highlight",
-        "Bowl42/agentui/collapsible"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-fold.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/search-highlight.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/collapsible.json"
       ],
       "files": [
         {
@@ -1026,25 +1026,25 @@
       "description": "An agent's turn in a conversation: its reasoning and tool calls, and what it said in between, under one title (\"Worked for 6m 12s\") above its answer, its chevron after it and a rule under it when open. Each step is a line of what was done, not what was typed: an icon for its kind (a book for a read, a pencil for an edit, a terminal for a command), its verb and what it acted on a step lighter (files by their names, underlined with dots, the path on hover), what came of it at the end (\"4 edits · +38 −12\", an alert and \"Exit 2\" by weight, not red) and how long it took on hover. A call's kind (read, search, list, edit, write, command, or the app's own) and its data (command, description, path, pattern, added and removed lines, diff, output, exit code) are enough: describeCommand reads a shell command as a read (\"Read composer.tsx\", \"Read 3 files\"), a search, a listing or an edit (sed -i), else a short command as it is (\"Ran pnpm build\"), else the agent's own description, as it is, the same while it runs and once done, else \"Ran a script\"; a leading cd is left out. A run, the steps between two things it said, is one row a thing: a file's edits merged (opened, their hunks by the file's order with their new line numbers, the first lines and \"Show all\"), files written in a row on one row, reads, searches and listings in a row under one nested line (\"Read 6 files, searched 3 times\"); it folds under one line past three kinds keeping edits, commands and reads first, the rest counted (\"Explored 6 files, edited 4, ran 4 commands and 6 other actions\"), files once each, and at its end the failures nothing later made good (on a phone the number alone). A command opened shows itself whole, wrapped, to copy (and to open in the app's view with onExpand), and its output's last lines on the side's grey, the earlier ones on request, each line in its tone: what failed strong, the output muted, passes and the tally faint (agentOutputTone, or the app's outputTone). While it runs nothing opens or closes by itself: the live run is one line, saying the step a tool is at in place of its sum, each step's in turn as they come, as a GPT turn does (a spinner, shimmering; opened, its sum and the step under way under the list; a step waiting for the reader, with a progress line or media, or opened by the reader stands under it; a shield and \"Wants to run …\", \"Waiting for you\" while it waits for the reader); what the reader opened stays open and new steps join it; the turn folds once, when it ends, only if the reader never touched it, so the answer does not move. Folded, a failure nothing made good is still seen at its title's end (\"1 failed\", an alert before it). Stopped or failed, its title says so (\"Stopped after 2m 03s\") and its last row where (\"Stopped while running Type-check the app\"); stopped, what it had said is kept, dimmed, and under it its whole footer, its facts how it ended (\"Stopped by you · 12:06\"), so retry is a press away. While it runs and the app's link to the agent is lost, connection says so at its end, a status (\"Reconnecting 2/5\" shimmering, or \"Disconnected\"), in place of its spinner. While it runs, its title is in the text's colour, shimmering, as a running step's words are; while it thinks, it says so (\"Thinking · 4s\") over a running step's spinner and the thought's newest bold heading, else its newest paragraph's first sentence, with Markdown stripped, muted, so it is seen going; once over, a quiet line (\"Thought for 12s\"), with no title over it when it is all the work; while it only thinks, its title is bare, its chevron and rule shown in their places when a step comes. While it runs, its title counts the time since startedAt each second and shows the app's metrics (\"Working · 47s · 38 tok/s\"); between steps, when nothing else is seen going, its end has a spinner alone, in the place an AgentTurnFooter then takes. A subagent is a step whose details are its own AgentTurn, its steps listed as they came one level under its words, with no run's line over them (its words are that line) and no title of its own and what it handed back last (AgentTurnResult, cut to 6 lines over \"Show all\" where long). AgentTurnStep is a call's line alone, outside a turn. AgentTurnTarget with href is a link on its step's line, over the line's button, shimmering itself while the step runs (in WebKit, a link's own layer gets none of its words' shimmer); in a fold's line, a button, it is its words alone. All its words are labels, for other languages. The reader's choices are kept with use-fold. Under an ended turn, its footer: copy, retry with a menu of other ways, the app's actions and a menu of more on the left; the model, how long and when on the right, a fact saying more alone on hover (AgentTurnFact: the time's full date), the turn's numbers in a card when pressed, in groups under their labels; its menus' hints plain small text, retry's menu opened from the whole retry group. Its actions shown on hover for turns before the last, its facts always; a finger's size on a phone; an open run's list (or a run of reads alone, opened) scrolls past min(18rem, 50dvh), fading at its edges and growing by the steps the reader opened in it, with the live step outside it, and while it runs it opens at its newest steps and follows them as they come unless the reader scrolled up; a command's output says \"Earlier output not shown\" or \"Later output not shown\" where the source cut it (outputTruncated: \"start\" or \"end\"), \"No output\" when a finished command printed nothing and \"Loading output…\" while outputLoading, and shown whole it scrolls past 20rem and follows its end while it runs unless the reader scrolled up; steps and onLoadSteps let a turn's steps load when opened, with three skeleton lines or a message and Retry. Toggling a fold keeps its line in place on screen, except while the conversation follows its live end. What the reader decided (a decision's row) and what a step viewed or made (its `media`, e.g. thumbnails, shown under its line) stay in sight right after a folded run's line or the folded work's title, in order (side by side, each picture's card as wide as alone in the conversation, up to 6 of the 12 columns; a step's several pictures or a video a row of their own), and show once, in place, when opened; a step still under way does too under an ended turn's folded work. What came from outside (an event part, an AgentEvent: a monitor's line, a background task's end, a wake-up) stays where it came, never folded into a run, one after the last step with the answer. What the user sent while it ran (a steer part) stays where it came, at its end edge as the user's message (UserMessageText's bubble and 16px text, cut to 6 lines over \"Show all\" where long), always seen, and the work before and after it each fold under a title as a turn's work, with its own time (\"Worked for 40s\"; the last \"Working\" while it runs, counted from its steer), steers back to back splitting it once; an attempt cut off and replaced (a superseded part) is one closed line (\"Superseded attempt · Cut off by a steer\") that opens to its parts, loaded when opened if they are not there yet. While a ConversationFind is open, each closed fold (work, run, step, superseded attempt, a command's earlier output lines) holds its text, read from the parts' data, hidden until found (FoldFindText); found, it opens as if the reader had opened it, its content not mounted until then.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/bubble",
-        "Bowl42/agentui/agent-event",
-        "Bowl42/agentui/use-fold",
-        "Bowl42/agentui/search-highlight",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/button-group",
-        "Bowl42/agentui/collapsible",
-        "Bowl42/agentui/dropdown-menu",
-        "Bowl42/agentui/message",
-        "Bowl42/agentui/popover",
-        "Bowl42/agentui/spinner",
-        "Bowl42/agentui/tooltip",
-        "Bowl42/agentui/code-block",
-        "Bowl42/agentui/clamp",
-        "Bowl42/agentui/copy-button",
-        "Bowl42/agentui/diff-block",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/bubble.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/agent-event.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-fold.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/search-highlight.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button-group.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/collapsible.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dropdown-menu.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/message.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/popover.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/code-block.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/clamp.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/copy-button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/diff-block.json",
         "skeleton",
-        "Bowl42/agentui/use-follow-end",
-        "Bowl42/agentui/use-shimmer-pause"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-follow-end.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-shimmer-pause.json"
       ],
       "files": [
         {
@@ -1068,10 +1068,10 @@
       "description": "What a turn changed and drew on, under its answer once the turn has ended. AgentTurnChanges: a 1.5px dotted border-colour rule with 16px above and below separates the answer from the card; callers add no spacing. One file as its diff (with `lines`, folded in its own card past that many), several as a card of them (\"3 files changed +18 −3\", M/A/D, +n −n), a row opening its file and \"View all\" all of them, e.g. in the app's panel. AgentTurnSources: the pages the answer drew on as a row of chips, each a link with its icon and site. In an AgentTurnChangesProvider around the turn and its footer, AgentTurnChangesTrigger, the first child of the footer's AgentTurnInfo (one of its facts, \"3 files changed +6 −1\", one file too, and a small chevron, in their size and grey, hovered in the text's colour; a disclosure, kept with the last fact where the footer is narrow, its words cut first, and shown where the actions show on hover only; 44px under a finger with the footer no taller) opens the card under the answer, no rule, rendered only while open; open/defaultOpen/onOpenChange on the provider.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/chip",
-        "Bowl42/agentui/diff-block",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/collapsible"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/chip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/diff-block.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/collapsible.json"
       ],
       "files": [
         {
@@ -1087,8 +1087,8 @@
       "description": "Text whose runs without a space (a long address, base64, a hash) are folded past 1,024 characters, so its layout stays bounded whatever the text: a browser lays such a run out as one word broken anywhere, in time that grows with its length (WebKit) or, kerned in the system font, with its square (Chromium: 256 KiB of one letter, 3s a layout). A folded run (LongRun) shows its first 512 characters, an ellipsis, a button for 16,384 more at a time (\"Show 261,632 more characters\") and one to copy it whole, and is not kerned; in a link, only its start. LongText folds a string's runs, for text shown as written (a sent message's, ComposerMessage); Markdown folds its own, not in code blocks. Words, however many, are as they were.",
       "dependencies": [],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/copy-button"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/copy-button.json"
       ],
       "files": [
         {
@@ -1109,13 +1109,13 @@
         "@hugeicons/core-free-icons"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/copy-button",
-        "Bowl42/agentui/dialog",
-        "Bowl42/agentui/tooltip",
-        "Bowl42/agentui/code-block",
-        "Bowl42/agentui/use-highlighted-code",
-        "Bowl42/agentui/long-text"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/copy-button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dialog.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/code-block.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-highlighted-code.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/long-text.json"
       ],
       "files": [
         {
@@ -1144,8 +1144,8 @@
       "description": "A status as a small mark, such as a conversation's, a connection's or a task's: a dot in its tone's colour (neutral, info, success, warning, destructive), a warning a ring and a danger a diamond so they are told apart by shape too, or a spinner while it is busy, in the text's colour with 2px lines so it is seen at a glance (still where the reader asks for less motion); `grey` where the page has no colour (a sidebar), the same shapes in greys; named for screen readers, its label in a tooltip on hover and while the keyboard is on its row. A status to read on screen is a Badge.",
       "dependencies": ["cn"],
       "registryDependencies": [
-        "Bowl42/agentui/spinner",
-        "Bowl42/agentui/tooltip"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json"
       ],
       "files": [
         {
@@ -1166,11 +1166,11 @@
         "@hugeicons/core-free-icons"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/popover",
-        "Bowl42/agentui/scroll-area",
-        "Bowl42/agentui/status-mark",
-        "Bowl42/agentui/tooltip"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/popover.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/scroll-area.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/status-mark.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json"
       ],
       "files": [
         {
@@ -1191,8 +1191,8 @@
         "@hugeicons/core-free-icons"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/popover"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/popover.json"
       ],
       "files": [
         {
@@ -1208,27 +1208,27 @@
       "description": "An agent app's shell: an optional rail of the app's areas (chat, files, settings) at the window's edge, kept while the sidebar is closed, the app's mark at its top, or (railPlacement=\"sidebar\") a bar at the sidebar's foot at every width, as on a phone, with no column; a sidebar (its name and a new conversation, a search row with its keys, then 32px rows of 14px, a project's count or `meta` and a conversation's time at their ends, a conversation's `icon` before its title and its `detail` a second line under it, a project's `hint` after its name, open by default or as the app keeps them, `shown` up to all; SidebarEdge its edge) of projects (the directories conversations start in), flat, each to its page with its count, then the app's conversations (`layout` list, the default), or each opening to its latest conversations, then the conversations in no project (`tree`), or, with `groups` (places projects live, e.g. machines) and its segmented tabs, a collapsible section per group with its projects and conversations, an unavailable one marked, a project showing its conversations' most pressing status in greys by shape (in a tree, while closed); the main area a card on the sidebar's colour, right after the rail while the sidebar is closed or folded; on a touch screen the rail is the desktop's (48px, 32px icons, 44px targets unseen) and the sidebar keeps its own new conversation and search, 28px wider for its rows; under a finger the sidebar's edge is a handle to see (a thin line, 4 by 32px, darker as it is held), dragged without the page scrolling, a tap leaving it open; a header of where the reader is (\"agentui / Fix the slow deploy\", 13px); the conversation's column of 12 columns of 48px, 752px with 16px each side (AgentAppColumn) and the composer's place under it (AgentAppDock, the messages fading above it), or a new conversation's page (AgentAppStart): its composer already in an AgentAppDock, where the conversation's will be, and the heading centred in the room over it, which shrinks and scrolls first in a short window; the row above the composer where a new conversation's project is picked, optionally in labelled groups (e.g. by the machine they are on), each with its own \"No project\" and \"Add project…\", the trigger then naming the group (with one group, no headings and the plain names), gone once it has started; a project's page of all its conversations, with room for the app's own sections; and a resizable panel of the app's beside the main area, the sidebar closing to the rail while it is open, in one card with it split by a line (a conversation's files, or a Browser, whose tabs are then its bar), which can expand over it, and as a sheet or a phone's drawer over the whole window; the app's areas at the sidebar's foot. On a touch screen too narrow for the sidebar beside the conversation's 600px (a tablet upright), a list and its page: the sidebar open at its narrowest between the rail and a conversation of minTouchMainWidth (432px, a large phone's, so from 704px); narrower (an unfolded phone), the sidebar folds to the rail and opens as a sheet over the conversation. On a foldable open as a book, the conversation on one screen and the panel on the other, or with no panel the sidebar pinned open as the first screen; half open as a laptop (tabletop), the composer's dock on the bottom screen. On a phone the header is the sidebar's button, the title and the app's actions at a finger's size, the sidebar is a sheet ending with the app's areas, and the panel a sheet from the bottom. The app gives the data, the addresses and the menus, and routes. With titlebar, a desktop window's bar across the top: back, forward and the sidebar's button past the window's own buttons, the header in it, the rail and a card of the sidebar and main area under it, 8px from the window's end and foot, its corners rounded, dragged by the bar; a panel beside the main area has its bar in the bar's row over it, as wide as it (useAgentAppPanelBar for a content's own, e.g. a Browser's barContainer), the panel's one button (AgentAppPanelTrigger, then the bar's AgentAppPanelClose) at the window's end open or closed; without Window Controls Overlay (a WKWebView's) the app's --agent-app-titlebar-inset and --agent-app-titlebar-height on the root, and agentAppTitlebarControls for a host that drags the window itself. AgentAppSidebarTitle: the sidebar's header as a button (renaming the workspace), its words where a title's are and as heavy, its hover's grey 8px out; a chevron with `chevron`. AgentAppPage `tabs`: above its title, under the way back, 16px over the title (line tabs on a rule), the first tab's word on the page's start line, the title's and the content's. A conversation's `meta` (its facts: where, its branch, its cost, when) stands in columns on a project's page, lined up across its rows (ItemGroup `columns`), its status and buttons after them, `metaAlign` each column's start (words, the default) or end (numbers); on a phone, a line under its title. The pages' and AgentAppConversationList's density=\"compact\": 32px rows, as the sidebar's, without an outline, for a long list. A dialog opened from the panel, open as the window narrows past the panel's room, stays on top and in reach: the panel's sheet or drawer opens once it closes. AgentAppPage's footer stays at the page's foot as it scrolls, on its colour, in its column: e.g. unsaved changes, an Alert with its AlertActions.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/tabs",
-        "Bowl42/agentui/use-fold",
-        "Bowl42/agentui/combobox",
-        "Bowl42/agentui/input-group",
-        "Bowl42/agentui/use-mobile",
-        "Bowl42/agentui/status-mark",
-        "Bowl42/agentui/alert",
-        "Bowl42/agentui/breadcrumb",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/collapsible",
-        "Bowl42/agentui/dropdown-menu",
-        "Bowl42/agentui/empty",
-        "Bowl42/agentui/item",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tabs.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-fold.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/combobox.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input-group.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-mobile.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/status-mark.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/alert.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/breadcrumb.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/collapsible.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dropdown-menu.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/empty.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/item.json",
         "kbd",
         "resizable",
-        "Bowl42/agentui/drawer",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/drawer.json",
         "separator",
-        "Bowl42/agentui/sheet",
-        "Bowl42/agentui/sidebar",
-        "Bowl42/agentui/spinner",
-        "Bowl42/agentui/tooltip",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/sheet.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/sidebar.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
         "direction"
       ],
       "files": [
@@ -1270,29 +1270,29 @@
         "@hugeicons/core-free-icons"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/code-viewer",
-        "Bowl42/agentui/diff-block",
-        "Bowl42/agentui/files-viewer",
-        "Bowl42/agentui/input-group",
-        "Bowl42/agentui/media-viewer",
-        "Bowl42/agentui/pdf-viewer",
-        "Bowl42/agentui/table-viewer",
-        "Bowl42/agentui/tabs",
-        "Bowl42/agentui/terminal-viewer",
-        "Bowl42/agentui/viewer",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/context-menu",
-        "Bowl42/agentui/dropdown-menu",
-        "Bowl42/agentui/empty",
-        "Bowl42/agentui/hover-card",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/code-viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/diff-block.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/files-viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input-group.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/media-viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/pdf-viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/table-viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tabs.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/terminal-viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/context-menu.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dropdown-menu.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/empty.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/hover-card.json",
         "resizable",
-        "Bowl42/agentui/spinner",
-        "Bowl42/agentui/switch",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/switch.json",
         "kbd",
-        "Bowl42/agentui/tooltip",
-        "Bowl42/agentui/alert-dialog",
-        "Bowl42/agentui/input",
-        "Bowl42/agentui/popover"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/alert-dialog.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/popover.json"
       ],
       "files": [
         {
@@ -1329,12 +1329,12 @@
       "description": "A message the user sent, at the end of the line: where it came from over it (\"Sent from queue\"), its text in a muted bubble cut to 6 lines with a Clamp (how long it is, copy, open in a reader; a bar at the top while it is open and scrolled past), when it was sent and its actions under it, shown on hover or focus and always on touch screens. Files, images and links it refers to are MessageMention chips in its text, each a button opening what it refers to. A command in its text (\"/review\") is a MessageCommand, a chip in monospace; a message that is only a command (\"/compact\") is a UserMessageCommand in place of the bubble, a quiet monospace line on a hairline at its end, what it did following as the app's own (a MessageDivider). Each message has an sr-only author heading, its level a prop (h3 by default). With from, a message written by someone else folds to one line showing the app-provided icon, label and first non-empty summary line. MessageLink: a web address in its text as a link, the site's icon (`icon`) before it centred on the line in any script and apart from the text before it, a long address going on beside it and breaking anywhere. At most 9 of the conversation's 12 columns (docs/grid.md).",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/chip",
-        "Bowl42/agentui/bubble",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/message",
-        "Bowl42/agentui/tooltip",
-        "Bowl42/agentui/clamp"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/chip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/bubble.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/message.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/clamp.json"
       ],
       "files": [
         {
@@ -1350,9 +1350,9 @@
       "description": "Loads the messages before those a long conversation shows: a button floating at the top of a MessageScroller, shown while the reader is at the start or while they load, with a spinner and no second load while they do; hidden once they came in above, it hands the focus to the viewport.",
       "dependencies": ["cn"],
       "registryDependencies": [
-        "Bowl42/agentui/floating-button",
-        "Bowl42/agentui/message-scroller",
-        "Bowl42/agentui/spinner"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/floating-button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/message-scroller.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json"
       ],
       "files": [
         {
@@ -1368,10 +1368,10 @@
       "description": "A long message with its outline: once it is 3 views tall and has two headings or more, its headings beside it where there is room, sticking to the top (the section being read marked, those read darker, how far the reader is, previous and next section, open in a reader), and otherwise a button sticking to the top that says the section being read and opens the outline, or nothing with pill false (e.g. beside a ConversationMinimap, which has its sections); while more than a view is below, a button at the bottom jumps to its end. A heading chosen scrolls into view and takes focus.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/floating-button",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/popover",
-        "Bowl42/agentui/tooltip"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/floating-button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/popover.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json"
       ],
       "files": [
         {
@@ -1387,10 +1387,10 @@
       "description": "A conversation map with one tick per user message and the app's marks, its reply's sections (the app's `sections`, or its headings read from the reply while rendered) as ticks under it; the ticks fall off as a dock's icons, the one being read longest (24px) and darkest, each row further a step shorter and lighter, short and faint (8px) from the fifth on, centred on the row under the pointer or with focus while one is, a section or mark a step behind a turn; hovered or focused, a tick's card: the question's first line, the reply's opening (the app's `reply`, or its first paragraph) in two lines, its attachments and its sections, the hovered one bold. Click or Enter jumps there; arrows move between ticks, with previous and next turn buttons. The error kind is a graphite diamond; a mark is a shorter tick. Shows only where the margin beside an AgentAppColumn has room, below a pinned ConversationDetails card, hiding when too little height is left. Hidden on touch screens and phones and when the conversation fits. Use inside MessageScrollerProvider beside the viewport.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/tooltip",
-        "Bowl42/agentui/hover-card",
-        "Bowl42/agentui/message-scroller"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/hover-card.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/message-scroller.json"
       ],
       "files": [
         {
@@ -1406,13 +1406,13 @@
       "description": "A message to read on its own, over the conversation: its title and what it is, a search of its text alone (Ctrl or Cmd F, Enter and Shift+Enter through the matches, drawn as CSS highlights), the app's actions and ⋯ menu, its outline beside it where the dialog (not the window) is wide enough and how far the reader is along the top, its text at a reading size. On a phone it is the whole screen, with back, the title, the menu, and a bar of the outline, search, how far and the actions. It opens as DialogContent's size=\"full\".",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/dialog",
-        "Bowl42/agentui/popover",
-        "Bowl42/agentui/search-highlight",
-        "Bowl42/agentui/viewer",
-        "Bowl42/agentui/message-outline",
-        "Bowl42/agentui/use-mobile"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dialog.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/popover.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/search-highlight.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/message-outline.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-mobile.json"
       ],
       "files": [
         {
@@ -1428,10 +1428,10 @@
       "description": "Ctrl/⌘F searches a whole mounted conversation’s DOM text, including folded parts and content-visibility-skipped messages. Reveals hidden=until-found folds with beforematch (closed folds hold only their text, FoldFindText, not their content) and clipped parts with revealmatch, draws up to 1000 matches in greys (\"1 of 1000+\"), and returns focus on close. Its words are labels. In a windowed MessageScroller it has every message mounted while open (useMessageScrollerShowAll); messages the app has not rendered and deferred steps not loaded yet are outside the search. Without CSS highlights, count, navigation, reveal and scroll still work.",
       "dependencies": ["cn"],
       "registryDependencies": [
-        "Bowl42/agentui/viewer",
-        "Bowl42/agentui/search-highlight",
-        "Bowl42/agentui/use-fold",
-        "Bowl42/agentui/message-scroller"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/search-highlight.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-fold.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/message-scroller.json"
       ],
       "files": [
         {
@@ -1446,7 +1446,7 @@
       "title": "Todo List",
       "description": "A list of things to do, such as an agent's plan, flat in the conversation: its title and how many are done (a bar and \"2 of 5\"), then the items, the one in progress in bold with a spinner, those done muted and struck through; each item's status is read out. In a PopoverContent it has no border of its own: the popover's surface its edge, out to its edges past the popover's padding.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
-      "registryDependencies": ["progress", "Bowl42/agentui/spinner"],
+      "registryDependencies": ["progress", "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json"],
       "files": [
         {
           "path": "src/components/todo-list.tsx",
@@ -1461,11 +1461,11 @@
       "description": "An agent's proposed plan, flat in the conversation with a hairline border: its title, copy and the app's actions above Markdown folded to a number of lines, Revise and Implement across its foot. Once decided, AgentRequest's quiet row records the outcome and opens the original plan without its choices; focus follows the decision to the row.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/agent-request",
-        "Bowl42/agentui/clamp",
-        "Bowl42/agentui/copy-button",
-        "Bowl42/agentui/markdown"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/agent-request.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/clamp.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/copy-button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/markdown.json"
       ],
       "files": [
         {
@@ -1508,9 +1508,9 @@
       "description": "Why a turn failed and what comes next, where its answer would have gone: an outlined card in the page's greys, an alert's triangle, the reason in a line and, under it, what it means or, while the app waits to try again, a countdown to it and which attempt that is; \"Retry now\" or the app's own action (\"Continue\") at its end. Its status, told by its mark and words, not a colour: waiting (a clock, the countdown), retrying (a spinner), exhausted (\"Gave up after 5 attempts\"), failed, cancelled, unknown (no answer: it may have gone through, check before trying again); several actions of the app's wrap at its end; nothing is tried on its own, the countdown's end only says it retries.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/alert",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/spinner"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/alert.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json"
       ],
       "files": [
         {
@@ -1532,19 +1532,19 @@
         "@lexical/react@^0.53.0"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/chip",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/button-group",
-        "Bowl42/agentui/drawer",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/chip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button-group.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/drawer.json",
         "kbd",
-        "Bowl42/agentui/dropdown-menu",
-        "Bowl42/agentui/spinner",
-        "Bowl42/agentui/tooltip",
-        "Bowl42/agentui/input-group",
-        "Bowl42/agentui/markdown",
-        "Bowl42/agentui/tabs",
-        "Bowl42/agentui/attachment",
-        "Bowl42/agentui/long-text"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dropdown-menu.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input-group.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/markdown.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tabs.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/attachment.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/long-text.json"
       ],
       "files": [
         {
@@ -1560,15 +1560,15 @@
       "description": "The messages queued while a turn runs, on a shelf above a composer: each can be edited (not one marked `editable: false`, e.g. a queued command, with its `icon` before its text), one from elsewhere says where (`from`: another agent or session, by weight before its text, cut to a third of the row, read with it and able to hold a link; over its text in the manager), moved to the top, sent now or removed, and moved by dragging or with Alt+ArrowUp and Alt+ArrowDown, which screen readers hear; past three it shows the first and how many more, and opens a dialog to filter, select, edit, move and remove them all. Shows a message being sent and a paused queue (resume, clear). On a phone, one row over the composer that opens the dialog full screen. The app owns the queue; the shelf asks for changes.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/composer",
-        "Bowl42/agentui/button",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/composer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
         "checkbox",
-        "Bowl42/agentui/dialog",
-        "Bowl42/agentui/input-group",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dialog.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input-group.json",
         "kbd",
-        "Bowl42/agentui/spinner",
-        "Bowl42/agentui/tooltip",
-        "Bowl42/agentui/use-mobile"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-mobile.json"
       ],
       "files": [
         {
@@ -1584,12 +1584,12 @@
       "description": "A choice of one from a composer's toolbar, such as a mode or an agent: a trigger that says the choice, and its items (a label, a line of description, a detail, a tick on the chosen one) over the composer, a search over more than searchFrom of them (10; 0 for always) that filters them by their words and keywords, in their order, its match in the text's colour, the chosen one still chosen while filtered out, a pinned item never filtered out nor marked, the search's text the app's with search and onSearchChange, and says when nothing matches, or in a sheet from the bottom with a title and Done on a phone (below sm, 640px: useComposerPhone). Arrow keys move among the items, Enter, Space or a click chooses and closes. ComposerModePicker: the app's modes; one with tone \"destructive\" (it lets the agent act unasked) is, chosen, in the destructive colour in the toolbar, its icon too, and its icon so in the list; a footer under the modes is a line of small grey text with a link or button in it (ComposerSelectContent's footer, past a hairline, in sight while the list scrolls). Its row look (composerSelectRow) and parts are what model-picker is built on. ComposerOptionButton: a button in the trigger's look, out of a ComposerSelect, for an option of the composer's row that opens something else (a dialog) or acts at once, a chevron after its words with `chevron`.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/drawer",
-        "Bowl42/agentui/input-group",
-        "Bowl42/agentui/popover",
-        "Bowl42/agentui/use-mobile",
-        "Bowl42/agentui/tooltip"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/drawer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input-group.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/popover.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-mobile.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json"
       ],
       "files": [
         {
@@ -1610,19 +1610,19 @@
         "@hugeicons/core-free-icons"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/command",
-        "Bowl42/agentui/composer-select",
-        "Bowl42/agentui/input-group",
-        "Bowl42/agentui/empty",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/command.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/composer-select.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input-group.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/empty.json",
         "kbd",
-        "Bowl42/agentui/select",
-        "Bowl42/agentui/slider",
-        "Bowl42/agentui/spinner",
-        "Bowl42/agentui/switch",
-        "Bowl42/agentui/tabs",
-        "Bowl42/agentui/use-mobile",
-        "Bowl42/agentui/tooltip",
-        "Bowl42/agentui/button"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/select.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/slider.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/switch.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tabs.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-mobile.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json"
       ],
       "files": [
         {
@@ -1663,7 +1663,7 @@
       "title": "Floating Button",
       "description": "A button that floats over what it covers, e.g. one that jumps to the end of a long text or of a terminal's output: round, on the page's colour (a step lighter in dark) and raised by shadow-float, as the message scroller's button is.",
       "dependencies": ["cn"],
-      "registryDependencies": ["Bowl42/agentui/button"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json"],
       "files": [
         {
           "path": "src/components/floating-button.tsx",
@@ -1678,8 +1678,8 @@
       "description": "A small window in a corner of its place (the nearest positioned ancestor, e.g. the main area) showing what an agent is on while the conversation goes on: of its items (pages, terminals), the one it is on (active), following it from one to the next. Dots (or \"2/12\" past seven; under a finger 28px wide each, so a tap takes its own, a count past four and in a pill) say how many there are; a swipe across the preview (taken on past its side, a move: the window catches up with the finger), a sideways scroll, the left and right arrows or a dot go through them, and it then stays where the reader went, a Follow button taking it back (following, onFollowingChange; onShownChange says which it shows, e.g. to stream that one's frames only). Each is a card (its title and preview, at aspectRatio 16:10; 320px wide, 240px on a phone) or a pill of one line (its icon, line and status; up to 384px, 240px on a phone), as its form says or the reader makes it (Minimize; the pill's line shows the card again, or expands one with no preview); a terminal is best a pill of its last line, PictureInPictureLines its last lines for a card. Dragged by any part but its buttons, it lands in the corner it is let go nearest or thrown towards, sliding there (none with reduced motion), or, let go with its middle past a side or thrown out past the side it is at, tucks into it, a 24px tab left; a tap on its preview is still a press; Shift and the arrow keys move it. corner/defaultCorner/onCornerChange in the reading direction, 16px (inset) from its place's edges and the safe areas. An item's attention is a strip under a card or the pill's line, in the text's colour with a ring, read out, the window nudged once. Expand (onExpand(id), e.g. into the side panel) and Close (onClose) are the app's; the app renders it while it shows.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/tooltip"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json"
       ],
       "files": [
         {
@@ -1721,8 +1721,8 @@
       "description": "An icon button that copies a value, such as a reply, or an image (CopyData: a type and its blob, asked for on the press; several in an array are one copy, e.g. a table as text/html and text/plain): its name and tooltip say \"Copied\" for a while after (pressed, the tooltip stays open to say so), and screen readers hear it. A value that has changed since (e.g. streaming) is not claimed as copied; when the clipboard refuses, it says it could not copy. With `showLabel`, its word beside the icon (\"Copy\", then \"Copied\"), as wide as the wider of them so it does not jump, and no tooltip.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/tooltip"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json"
       ],
       "files": [
         {
@@ -1751,13 +1751,13 @@
       "description": "A table of the app's to look at, copy and download, framed as a code block: its title and size, a button to copy it as text a spreadsheet takes, a menu to download it as CSV or Markdown, and a full-screen view with its heading row kept at the top. It scrolls sideways where it is wider, by keyboard too, faded at the edges; long cells wrap, short ones stay one line, a column of numbers to the end; a cell's rendering (e.g. a search's matches) and where a download goes may be the app's. Made of shadcn's Table, Dialog and DropdownMenu, in the code block's frame. It opens as DialogContent's size=\"full\".",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/code-block",
-        "Bowl42/agentui/copy-button",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/dialog",
-        "Bowl42/agentui/dropdown-menu",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/code-block.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/copy-button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dialog.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dropdown-menu.json",
         "table",
-        "Bowl42/agentui/tooltip"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json"
       ],
       "files": [
         {
@@ -1786,10 +1786,10 @@
       "description": "How much of something is used, as a meter (role=meter, its name and value said): a ring or a bar in the foreground's greys, the app's words after it, on its own or in a Badge as a quota chip. Its breakdown's popover is no wider or higher than the room it has, its rows scrolling (a keyboard stop where they do), its title, meter and footer kept; contentClassName gives it the app's classes. UsageMeterBreakdown is a button with the meter that opens a popover: its title and value on one line, a bar of the whole, and the app's rows of label and value in grey; rows with an amount are parts of the bar, each a grey of its own (no colour), and a row's separator starts a group (e.g. cost after context). In an input group, as a composer's toolbar, it opens 8px above the group, not over its text. Every word is the app's. Its fill in the theme's warning or destructive colour with `tone`, near a limit and at it, on the ring, the bar and the breakdown's bar, the track as it was. UsageMeterList: several meters at a glance (a popup of an account's limits), each its label and value on a line, a bar across under them and a line of detail (when it resets), 12px apart, each a meter to a screen reader.",
       "dependencies": ["@base-ui/react", "cn"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/input-group",
-        "Bowl42/agentui/popover",
-        "Bowl42/agentui/switch"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input-group.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/popover.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/switch.json"
       ],
       "files": [
         {
@@ -1805,8 +1805,8 @@
       "description": "What a run used and what it cost, by unit, never added across units: a button of its totals (UsageAmount: the app's formatted value, its unit, its completeness), each saying how far it is to be trusted in words, not a colour (≈ and Estimated, Partial, Not reconciled, No price; not known is \"Unknown\", never 0); \"So far\" while it runs; opened, its breakdown (UsageSummaryRows: a row's label, amount and completeness, a button to its source and why, a popover, by touch too) and what has no price (missing). UsageSummaryRows alone goes in an AgentTurnInfo's details. The app adds the amounts, by unit; it fetches nothing.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/popover"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/popover.json"
       ],
       "files": [
         {
@@ -1822,8 +1822,8 @@
       "description": "Connections to services (a model provider's, a tool server's), read, never managed. ConnectionList of ConnectionListItem: a row a connection, its name cut to a line and its status under it, a button that shows it (aria-current while shown); loading, its rows' shapes; none, labels.empty or the app's empty (a filter's \"No match\"); not fetched (error), why and Retry. Filtering and pages are the app's around it. ConnectionStatus: available, rejected, unknown or off, told by its mark's shape (a dot, a diamond, a ring, a bar) and its word, when it was checked and, too old to go by, \"May be out of date\"; why under it. ConnectionDetails (none chosen, loading, unavailable, or its parts): ConnectionDetailsHeader (its name whole and its status), ConnectionNotice (what needs the reader, e.g. to enter its key again, and the app's link to how), ConnectionDetailsField, ConnectionTarget (an address in mono on a line, a button showing it whole where it is cut short, one copying it) and ConnectionCredential (the app's masked summary, with a lock: no way to show or enter it).",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/copy-button",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/copy-button.json",
         "skeleton"
       ],
       "files": [
@@ -1839,7 +1839,7 @@
       "title": "Diff Block",
       "description": "A unified diff, as git or diff -u writes it, in code blocks: one for each file, its icon, name (both, renamed or copied) and what it adds and removes (+3 −1, small, in the faintest grey) in the header, each line with its number in a gutter (a removed line's in the old file; or old and new, `numbers=\"both\"`) and its sign in a column of its own, hunks under their @@ line as a band between rules where a file has more than one; added and removed lines in the code block's greys; a binary file says so. parseUnifiedDiff reads the text into files, hunks and lines (their numbers, renames, copies, modes, binary files and the no-newline marker); the block takes the text or what it read. With `lines`, each file longer than that folds in its own block (CodeBlock's `lines`, its words in `labels`), only the lines it shows rendered while folded. DiffFileContent is a file's lines alone, e.g. in a viewer; its touch option hides numbers and hunk headers on coarse pointers, leaving signs alone. labels.unified names the unified view. DiffFileList lists the files a diff changes (an M, A or D, the path with its directory fainter, +n −n) to pick one, as a panel's list or in DiffFilesCard, a message's card of a turn's changes (\"3 files changed +18 −3\" and the app's action, e.g. Review all).",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
-      "registryDependencies": ["Bowl42/agentui/code-block"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/code-block.json"],
       "files": [
         {
           "path": "src/components/diff-block.tsx",
@@ -1858,14 +1858,14 @@
       "description": "A file's code to read, from the code block: coloured, its lines numbered, folding by indentation in any language, wrapped or not (the app's to keep), JSON formatted or as written, its lines' look the app's (e.g. an edit's changes), and a find bar of its own: Ctrl+F or Cmd+F while the focus is in it, Enter and Shift+Enter to the next and previous match, :120 to line 120, its matches marked in the coloured code: CSS highlights of the lines in sight, so a keystroke renders no line again (5 ms, not 70, for a term in every line of 3,500), marks where the browser has none. Embedded (variant=\"embedded\"), it is a viewer's, as the browser's code pages: in a ViewerFrame of its own, borderless to its edges as a diff is, its tools (format, find, copy) in the frame's toolbar, Wrap, its language and length in the status bar.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/code-block",
-        "Bowl42/agentui/viewer",
-        "Bowl42/agentui/copy-button",
-        "Bowl42/agentui/search-highlight",
-        "Bowl42/agentui/use-highlighted-code",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/toggle",
-        "Bowl42/agentui/tooltip"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/code-block.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/copy-button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/search-highlight.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-highlighted-code.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/toggle.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json"
       ],
       "files": [
         {
@@ -1881,11 +1881,11 @@
       "description": "A tool call's input or output, to read, for a call the app has no view of its own for (e.g. an MCP tool's): a JSON object, as text or a value, as its fields, each its key beside its value (over it where narrow): text as text, wrapped, its lines kept, long text cut to 6 lines over \"Show all\"; a number, true, false or null as code; an object, an array or text that is one in JSON as a formatted JSON block folding past 8 lines. Other text is text, coloured in its language (\"ansi\" for a terminal's), folding past 12 lines. Its header has its title, the app's actions, a toggle to the JSON as it came (formatted, wrapped) and copy, which copies it as it came. mcpToolName reads an MCP tool's name (mcp__github__create_issue) as its server and tool, for the app's title.",
       "dependencies": ["@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/code-block",
-        "Bowl42/agentui/clamp",
-        "Bowl42/agentui/use-highlighted-code",
-        "Bowl42/agentui/toggle",
-        "Bowl42/agentui/tooltip"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/code-block.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/clamp.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-highlighted-code.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/toggle.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json"
       ],
       "files": [
         {
@@ -1906,15 +1906,15 @@
         "@base-ui/react"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/attachment",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/collapsible",
-        "Bowl42/agentui/copy-button",
-        "Bowl42/agentui/dialog",
-        "Bowl42/agentui/floating-button",
-        "Bowl42/agentui/media-viewer",
-        "Bowl42/agentui/tooltip",
-        "Bowl42/agentui/use-shimmer-pause"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/attachment.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/collapsible.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/copy-button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dialog.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/floating-button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/media-viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-shimmer-pause.json"
       ],
       "files": [
         {
@@ -1929,7 +1929,7 @@
       "title": "Agent Launch",
       "description": "New tasks an agent proposes to start (each a conversation of its own), in an agent-request that asks the reader first, read at a glance rather than as a form: each AgentLaunch three lines in line with each other, its title (AgentLaunchTitle, one line), what it runs with as one quiet line cut short, its values a dot apart (AgentLaunchMeta of AgentLaunchMetaItem: the agent and model, the machine, the folder, the permissions; the dots not read out), and two lines of the first message it is sent (AgentLaunchMessage). A pencil at the title's end opens its settings in place, Done closes them: the title its editor (an Input), then a composer's box (AgentLaunchEdit: an InputGroup of the message, three lines to eight, and along its foot AgentLaunchControls, the pickers quiet as a composer's toolbar has them: ComposerSelect, a model picker, ComposerModePicker, an option a ComposerOptionButton with aria-pressed). What cannot change (a copy's agent, machine, folder: AgentLaunchMetaItem fixed, put first) stays a line over the box. Several are an AgentLaunchList, a rule between, each with a checkbox to leave it out (included, onIncludedChange; named by its title), its title and message muted when left out. The request's choices (Don't start, Always start like this, Start) are the app's, in AgentRequestFooter. Fits the composer's width on a phone (ComposerTakeover).",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
-      "registryDependencies": ["Bowl42/agentui/button", "checkbox"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json", "checkbox"],
       "files": [
         {
           "path": "src/components/agent-launch.tsx",
@@ -1943,7 +1943,7 @@
       "title": "Voice Mode",
       "description": "A spoken conversation with the agent, the audio the app's: an orb (VoiceModeOrb) whose rings swell with the level of whoever is heard (the reader listening, the agent speaking; a CSS variable, set as often as the app likes), its disc breathing while it thinks, faint while it connects, grey with the mic struck out while muted, still where less motion is asked for, a button that interrupts the agent while it speaks (onInterrupt); a word of where it is, announced (VoiceModeStatus); the last lines said (VoiceModeCaptions of VoiceModeCaption, the agent's in the text's colour, the reader's grey, interim greyer), not announced; round buttons (VoiceModeControls: VoiceModeMute, pressed while muted, VoiceModeEnd, and the app's VoiceModeButton). variant full fills its place (a panel, a sheet, a phone's page): the orb 192px (160 on a phone) and its status in the middle, three lines of captions fading upward, the buttons at the foot over the home indicator. variant bar is a 56px row in the composer's place, as its box: a small orb, the status (read out only on a phone), the latest line kept to its end as it grows, the buttons.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
-      "registryDependencies": ["Bowl42/agentui/button"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json"],
       "files": [
         {
           "path": "src/components/voice-mode.tsx",
@@ -1957,7 +1957,7 @@
       "title": "Agent Request",
       "description": "The agent asks the reader: to allow a tool call, or a question. A card for the composer's place (ComposerTakeover) in its frame, taking focus there, its icon beside its title and description (which name and describe it), what it is about under them (a command, a Questionnaire's choices, each led by its number, a checkbox after it where several may be chosen) and the reader's choices across its foot after a muted status (\"Asked 4s ago\"). Given its decision, it is one quiet row, as a step: the icon, what was asked and what came of it (\"Allowed git push origin main\", the question and its answer), its meta at the end (\"Once · by you\"); opened, the card as it was, to read, without its choices, a question's options listed with the chosen one marked. Given waiting, a still row for the conversation while the card is below (\"Waiting for you below\"). Several questions are one card, one at a time: a QuestionnaireProgress first in its footer and a QuestionnaireNavigation last, so there is always a way on; decided, each an AgentRequestQuestion over its options. While it asks, a chevron at its top end folds it to its title or header (collapsed, defaultCollapsed, onCollapsedChange; its words in labels), so the conversation over it can be read; its title opens it again, what was chosen in it kept. collapsible={false}: no chevron, a notice of one action in the composer's place (a sign-in, a limit reached). Of its title and a choice or two alone (\"Working in another app\", Take over), one row of 44px, the choices at its end on the card, no band under it and no chevron, at any width. AgentRequestError: why the reader's choice did not go through, over the footer, announced, in the destructive colour. Narrow, the AgentRequestStatus is a line of its own under the choices.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
-      "registryDependencies": ["Bowl42/agentui/collapsible"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/collapsible.json"],
       "files": [
         {
           "path": "src/components/agent-request.tsx",
@@ -1972,9 +1972,9 @@
       "description": "shadcn/ui's base-nova input-group, fixed: the group looks disabled only when its input or textarea is, not when a button in an addon is; a contenteditable control, :focus-visible whenever it has focus, darkens the border a step instead of the dark border and 3px ring; a popup opened from inside the group, as a menu of a composer's toolbar, sits 8px clear of the whole group rather than of its trigger (inputGroupPopupOffset, Base UI's sideOffset for it), so it never covers the text; where the group folds its trigger away, it opens from the group's button marked data-input-group-fold (inputGroupPopupAnchor, Base UI's anchor for it). InputGroup size=\"lg\": a sign-in screen's, 44px, its text 16px and its icons 20px. Its spacing on the 4px module (docs/grid.md).",
       "dependencies": ["cn"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/input",
-        "Bowl42/agentui/textarea"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/textarea.json"
       ],
       "files": [
         {
@@ -2002,7 +2002,7 @@
       "title": "Message Scroller",
       "description": "shadcn/ui's base-nova message-scroller, on @shadcn/react 0.3.1's primitive made part of it (message-scroller-primitive) and fixed: scrolling costs a few rect reads a frame however long the conversation, not every message's on every scroll event (each a forced layout of the whole conversation where layout was dirty); its messages windowed (windowed, on by default): each item keeps its place and height but the content of those more than a few views away is unmounted (10rem before first measured), mounted again as the reader comes near, before the frame is drawn where a scroll outruns the observers (a fling, a scrollbar drag, a jump, a conversation opened at a message: they were drawn as empty boxes until a later frame), except one holding the focus or a selection; useMessageScrollerShowAll(active) mounts them all, as a find does while open; windowed={false} keeps all mounted with content-visibility: auto; while the reader scrolls, what they look at stays put as messages above it mount or render at their real height (every row, with a messageId or not), in every browser, by scrolls relative to where the viewport is, so a wheel step WebKit is still scrolling on its own thread as earlier messages come in above is not lost (1 in 5 was) (WebKit has no scroll anchoring and Firefox's missed these, so the browser's is off on the viewport); only a gesture toward the start (a wheel up, a finger dragging down, ArrowUp, PageUp, Home, Shift+Space) lets autoScroll go, as one toward the end at the end moves nothing and nothing would take it back up; nor does a message rebuilt in place, its nodes taken out and put back with a layout read between (as a renderer finishing a streamed reply does): the browser moved the scroll up as if the message were gone, which read as the reader scrolling away, and the reply was no longer followed (in WebKit, at every reply's end); the scroll-to-start button jumps, so with autoScroll it is not pulled back to the end, and scrollToMessage keeps the message in place while the messages above it render at their real height; without autoScroll, the end it opens at or scrollToEnd goes to is held while the content settles and comes, until the reader scrolls; a row replaced by another is not taken for a new message, which scrolled up to the first scrollAnchor message there at mount and left the end; its buttons take a finger at 44px, and hand the focus to the viewport once they have scrolled (the primitive blurs them and they go inert); with reduced motion they jump and fade without sliding; they float raised by shadow-float, which shows in dark, as shadow-md hardly did. Its buttons' words are labels; given a summary (the app's words on what waits below), a button becomes a pill with its label and a muted summary after an aria-hidden dot, truncated to fit, all of it in its name, announced only by the app. useMessageScrollerRelease ends a hold before an app scrolls the viewport itself, such as to a find match; without a provider it is a no-op. scrollToMessage(id, { highlight: true }) marks the message a moment where the reader was taken to it (a search's result, a link): the accent fading out over 1.2s (the theme's animate-highlight; held while marked with less motion); scrollToMessage(id, { part }) puts a part of it ([data-part-id], e.g. an AgentTurn's step, its folds opened by the app) 16px below the viewport's start once drawn, held there while what is above settles; an app's data-highlighted on a MessageScrollerItem does the same. It is a container (@container/message-scroller; not its viewport, as WebKit then misses the end it holds), so what is in it can take the room beside the column, as a Markdown table wider than the text does. Its spacing on the 4px module (docs/grid.md). Its scroll buttons pop by the theme's motion-pop.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
-      "registryDependencies": ["Bowl42/agentui/button"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json"],
       "files": [
         {
           "path": "src/components/ui/message-scroller.tsx",
@@ -2020,7 +2020,7 @@
       "title": "Pagination",
       "description": "shadcn/ui's base-nova pagination, fixed: Renders page links as links rather than as buttons. Its spacing on the 4px module (docs/grid.md).",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
-      "registryDependencies": ["Bowl42/agentui/button"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json"],
       "files": [
         {
           "path": "src/components/ui/pagination.tsx",
@@ -2039,7 +2039,7 @@
         "@hugeicons/react",
         "@hugeicons/core-free-icons"
       ],
-      "registryDependencies": ["Bowl42/agentui/button"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json"],
       "files": [
         {
           "path": "src/components/ui/questionnaire.tsx",
@@ -2106,8 +2106,8 @@
       "description": "shadcn/ui's base-nova attachment, fixed: an opt-in filled variant for a pasted-text chip, with a muted fill, no border, a 44px height, 8px corners and a regular-weight title; the container focus ring appears on keyboard focus only. Depends on the fixed button so installing it preserves that fix. The tile variant is a 64px square image tile with a covering image, rounded-lg corners and a subtle border; corner actions show on hover or focus and always on touch or error, the name stays available to screen readers, and tiles snap in a scrolling group. Running titles pause while out of view with use-shimmer-pause. Its spacing on the 4px module (docs/grid.md).",
       "dependencies": ["cn", "class-variance-authority", "@base-ui/react"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/use-shimmer-pause"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-shimmer-pause.json"
       ],
       "files": [
         {
@@ -2245,7 +2245,7 @@
       "title": "Toggle Group",
       "description": "shadcn/ui's base-nova toggle-group, fixed: Passes orientation to Base UI, so vertical groups take ArrowUp and ArrowDown; in dark, a pressed item is a step lighter than a hovered one (both were bg-muted, hardly off the background). Its spacing on the 4px module (docs/grid.md).",
       "dependencies": ["cn"],
-      "registryDependencies": ["Bowl42/agentui/toggle"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/toggle.json"],
       "files": [
         {
           "path": "src/components/ui/toggle-group.tsx",
@@ -2260,8 +2260,8 @@
       "description": "shadcn/ui's base-nova trace, fixed: Keeps pending and description text at 4.5:1 contrast, marks a failed line in greys, by weight, not red, and leaves its fold's title untinted, and a fold's title and content at its rows' size (text-sm); a line's description is its result, smaller, at the line's end, so results line up in a column; with reduced motion a fold opens and its chevron turns at once. Running titles pause while out of view with use-shimmer-pause.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/collapsible",
-        "Bowl42/agentui/use-shimmer-pause"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/collapsible.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-shimmer-pause.json"
       ],
       "files": [
         {
@@ -2353,7 +2353,7 @@
       "type": "registry:lib",
       "title": "Phone Sheet",
       "description": "What turns a menu's, a popover's or a select's popup into a sheet from the bottom on a phone (narrower than 640px), for dropdown-menu, context-menu, popover and select: the positioner pinned along the bottom of the screen, the popup across it up to 6rem below its top and clear of the home indicator, a scrim that closes it when tapped, a header with a handle that closes it when dragged down a quarter of its height or flicked, and an optional title, and rows 44px tall (`in-data-phone-sheet:`).",
-      "registryDependencies": ["Bowl42/agentui/use-mobile"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-mobile.json"],
       "files": [
         {
           "path": "src/lib/phone-sheet.tsx",
@@ -2418,14 +2418,14 @@
       "description": "The skeleton of a thing open in a panel, e.g. a file: a toolbar above of islands with no line under them, the path's and one per group of tools (ViewerTools, each ViewerToolGroup an island of its own: a pill 36px high on the page's colour with a hairline and a faint shadow, a step lighter than the panel in dark, its buttons 28px; a lone tool a round island) (the path's folders folded into a menu where they have no room, the path on a row of its own over the tools where its name would be cut short of 6rem, a name cut keeping its extension) (back, its path as a breadcrumb or the app's start in their place, none where a tab names it, its own tools, the app's, add to chat, download, a menu of the app's), its content to the edges, and a status bar below (controls at the start, facts at the end), or an action bar (ViewerActionBar: what the actions act on, small, then the app's buttons, e.g. Discard and Commit); a frame whose toolbar would hold its path alone may go without one. Its parts compose any viewer; ViewerFrame lays them out from props, ViewerFrame is one row above in a panel and over the window alike (its path or `start`, the kind's own `lead` such as compare; its `zoom`, tools, the app's actions, add to chat, download, More with its facts at the top where the kind has no status bar, `statusBar={false}`), the content to the edges, and a floating bar of ways to change it at the content's foot (ViewerEditBar: a handle to drag it aside by, the kind's own such as an image's marking, then the app's `edits`, ViewerEditButton's icon and word, the icon alone where the viewer is under 24rem; gone with none). ViewerZoom is a toolbar's percent (a menu of Fit, in, out and the steps) or a status bar's zoom with Fit (its value a menu of the steps and Fit; in and out a step at least a fifth larger or smaller, so one from a fitted size is never a few percent), ViewerFrameEnd gives a frame's surroundings tools at the end of its toolbar (as ViewerOverlay's close), ViewerFrameTitlebar makes its toolbar the window's top row (as ViewerOverlay's: as tall as an AgentApp's titlebar, past the window's own buttons or --viewer-titlebar-start, dragging the window but by its controls; its name, its facts after it, quieter, not in More, then lead, the surroundings' tools at its end) and its tools islands under the content, as a photo app's (ways to change it, in place of the floating bar, then the zoom, tools, actions, add to chat, download and More; on two rows where they have no room on one), ViewerMenu a tool that opens a menu (More, or one of its own icon, as wide as its items), ViewerFilter a filter of its bars, ViewerFind a find bar (floating over the content, or a bar's field) with its count and the previous and next match, and ViewerUnsupported says a file has no preview. Buttons named by tooltips, a finger's place on touch screens. ViewerFrame takes position ({ index, count }), onPrevious and onNext for the app's others: round buttons by the content's sides (none at the ends) and \"3 / 7\" at its foot (labels.previous, next, among); ViewerSiblings draws them over any relative content.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/breadcrumb",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/dropdown-menu",
-        "Bowl42/agentui/empty",
-        "Bowl42/agentui/input-group",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/breadcrumb.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dropdown-menu.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/empty.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input-group.json",
         "separator",
-        "Bowl42/agentui/tooltip",
-        "Bowl42/agentui/zoom"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/zoom.json"
       ],
       "files": [
         {
@@ -2441,10 +2441,10 @@
       "description": "A viewer over the whole window, e.g. a conversation's image, as a dialog: to the window's edges, one surface (no inset, corners or card in it). The app's viewer (a MediaViewer, or any ViewerFrame) fills it, its toolbar the window's top row (ViewerFrameTitlebar): as tall as an AgentApp's titlebar (--agent-app-titlebar, else 44px), past the window's own buttons (--agent-app-titlebar-inset), dragging the window but by its controls ([data-titlebar], app-region: drag; a host that drags it itself does so on a pointerdown there whose target is not a control); the viewer's name at its start, its facts after it, quieter (not in More, which is there only for the app's menu), then its lead (an image's versions and compare); at its end \"Open in side panel\" (where the app has a panel to move it to) and close (its own row with the overlay's label where the viewer has no toolbar). The viewer's tools are islands at the middle of its foot, over the composer and never over the image: marking (a mode whose tools, Clear marks and the send come after it) and the app's edits, then the zoom with the viewer's and the app's tools, add to chat, download and More; on two rows where they have no room on one. A strip of the conversation's images at the start, under the row (even of one; a placeholder for one with no thumbnail yet, the app loading it when it is picked, a spinner while `loading`) picking the one shown, its current one ringed and kept in view, gone on a phone; round buttons to the one before and after by the viewer's sides, with a mouse while it points at the viewer or one has focus, always under a finger and on a phone (the app gives its viewer no previous and next of its own); past a phone's status bar; and the app's composer under it, to ask about what is shown while it is. ← → go to the one before and after, where focus is not in a field, a menu or a slider.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/dialog",
-        "Bowl42/agentui/spinner",
-        "Bowl42/agentui/viewer"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dialog.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/viewer.json"
       ],
       "files": [
         {
@@ -2460,12 +2460,12 @@
       "description": "A folder's files in a viewer, as a file manager has them, four ways: a tree of rows with when each changed and its size, a description after a name, a status letter after a changed file's, ignored ones dimmed; a grid of thumbnails (images' own, the rest their type's icon) with a caption and a badge; columns of folder after folder with the picked file's preview, folding away with no room; and a gallery of the picked file large over a strip. Sorted by any column, or in the app's order; in the app's groups under headings. One picked, the arrow keys moving it as each view has them, Enter to open; a filter by name keeps the folders on the way open; the filter takes the path's place in the toolbar, and the app's own search's results are a flat list, each with where it is, how many said in the field. Search selects the first available result, shows its Open hint, and keeps focus in the field while Up and Down move selection and Enter opens it. The field replaces the search tool; its clear button closes it. The status bar shows the search folder, keyboard hints and results shown out of the supplied item count, preserving app controls and details. Only the rows in view are drawn, in the list and in each column. Folders loading, the files, previews and what opening does are the app's. A row may carry what a change adds and removes (+n −n) after its status. Disabled entries remain visible for context, skip selection and opening, and are passed by the keys in every view. The list leaves out a Modified or Size column no loaded file has; start puts the app's control in the path's place. The count prop optionally counts only the filtered top level for item and changed facts, preserving search result totals. levelFilter filters one folder's enabled files by name prefix, as a typed path's last segment does, driven by the app's input with no field opened: the other levels stay whole, the status bar says n of m items, a level with none says No matches; the toolbar's filter, while it has text, takes precedence. tree={false} shows a flat top-level list; openOn=\"click\" opens on tap, onUp asks for the parent, and loading shows a spinner while files arrive. header={false} drops the list's column header and filter={false} the toolbar's filter; count can name one folder to count. A disabled entry takes no focus unless all are; one column alone keeps a column's width. Rows are 44px tall under a coarse pointer. It has no fill of its own: it takes the surface it sits on, a dialog's or a card's. Columns resize at each border with a fine pointer: drag, arrow keys or Home/End; double click or Enter resets. Widths by depth use columnWidths/defaultColumnWidths/onColumnWidthsChange; the fit count follows.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/search-highlight",
-        "Bowl42/agentui/virtual-grid",
-        "Bowl42/agentui/virtual-list",
-        "Bowl42/agentui/viewer",
-        "Bowl42/agentui/dropdown-menu",
-        "Bowl42/agentui/spinner",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/search-highlight.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/virtual-grid.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/virtual-list.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dropdown-menu.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json",
         "kbd"
       ],
       "files": [
@@ -2482,16 +2482,16 @@
       "description": "A folder chooser built on FilesViewer, in a dialog or an embedded panel (autoFocus: its path field focused as it is shown, as the dialog's). Columns or a tree, with a path field, places and optional folder creation; files hidden or disabled for context. Enter goes into a folder, Cmd or Ctrl with Enter chooses it; Escape restores an edited path or cancels folder creation before closing the dialog. On a phone it fills the screen and shows one folder at a time, a flat list: a tap goes into a folder, the breadcrumb goes back up, Choose picks the folder shown, and the places are a select standing for the place's root at the start of the breadcrumb (chosen again, back to the root). On a larger screen the path field sits in the browser's toolbar, the only location and filter: no breadcrumb, no toolbar filter; the places a list with their icons. A folder with no path leaves the field empty with its placeholder. The count is the level being picked in. The dialog's footer is whole on a phone, above the home indicator. The tree, loading, paths, places, creating folders and whether a folder can be chosen are the app's. Loads deduplicate hover and focus prefetch with abort signals and independent loading columns. The typed path steers the browser: its last segment filters the folder typed into (only that level, VS Code style), n of m items in the status bar, No matches where none do; the first match is selected with inline completion, Up/Down cycle the filtered folders, Tab steps in, and with no match the typed folder itself is selected. Columns resize on a larger screen, with widths passed through to FilesViewer.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/files-viewer",
-        "Bowl42/agentui/composer-select",
-        "Bowl42/agentui/viewer",
-        "Bowl42/agentui/dialog",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/select",
-        "Bowl42/agentui/spinner",
-        "Bowl42/agentui/use-mobile",
-        "Bowl42/agentui/field",
-        "Bowl42/agentui/input"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/files-viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/composer-select.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dialog.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/select.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-mobile.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/field.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input.json"
       ],
       "files": [
         {
@@ -2512,16 +2512,16 @@
         "@base-ui/react"
       ],
       "registryDependencies": [
-        "Bowl42/agentui/viewer",
-        "Bowl42/agentui/copy-button",
-        "Bowl42/agentui/button",
-        "Bowl42/agentui/dropdown-menu",
-        "Bowl42/agentui/empty",
-        "Bowl42/agentui/slider",
-        "Bowl42/agentui/spinner",
-        "Bowl42/agentui/toggle",
-        "Bowl42/agentui/toggle-group",
-        "Bowl42/agentui/tooltip"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/copy-button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/dropdown-menu.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/empty.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/slider.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/spinner.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/toggle.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/toggle-group.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tooltip.json"
       ],
       "files": [
         {
@@ -2549,9 +2549,9 @@
       "description": "A PDF in a viewer. With the app's rendered pages (e.g. PDF.js's canvas and text layer): a rail of the pages, the pages one under another, page by page, zoom with Fit to the width, and a find bar (Ctrl or Cmd+F) that marks what it finds in the pages' text with the CSS Custom Highlight API, no elements added. With only a file: the browser's own PDF viewer in a frame, told the page and zoom by its address.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/input-group",
-        "Bowl42/agentui/search-highlight",
-        "Bowl42/agentui/viewer"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/input-group.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/search-highlight.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/viewer.json"
       ],
       "files": [
         {
@@ -2566,7 +2566,7 @@
       "title": "Table Viewer",
       "description": "A table in a viewer, e.g. a CSV file (parseCsv reads RFC 4180): row numbers, each column's type under its name (numbers found, to the end), only the rows in view drawn. A cell picked by a click or the keys (arrows, Page Up and Down, Home and End); the status bar says which and a column of numbers' sum; filtered by text, sorted by the picked column, and the picked cell given to the app by @.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
-      "registryDependencies": ["Bowl42/agentui/viewer"],
+      "registryDependencies": ["https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/viewer.json"],
       "files": [
         {
           "path": "src/components/table-viewer.tsx",
@@ -2581,12 +2581,12 @@
       "description": "Terminals in a viewer, a tab per process with a live dot while it runs: its output with its ANSI colours, following its end while it comes; Stop, Clear and Send output to chat below, with the app's words on it at the end.",
       "dependencies": ["cn", "@hugeicons/react", "@hugeicons/core-free-icons"],
       "registryDependencies": [
-        "Bowl42/agentui/floating-button",
-        "Bowl42/agentui/tabs",
-        "Bowl42/agentui/use-follow-end",
-        "Bowl42/agentui/use-highlighted-code",
-        "Bowl42/agentui/viewer",
-        "Bowl42/agentui/button"
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/floating-button.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/tabs.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-follow-end.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/use-highlighted-code.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/viewer.json",
+        "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.30/public/r/button.json"
       ],
       "files": [
         {
