@@ -67,4 +67,6 @@ test("every wheel step up is kept as earlier messages come", async () => {
     host = undefined
   }
   expect(moved).toEqual(Array(8).fill(300))
-})
+  // Eight runs of real wheel steps: some 9s alone, past the default 30s
+  // under the full suite's load in WebKit.
+}, 120_000)
