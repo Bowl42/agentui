@@ -2871,9 +2871,9 @@ function Segment({
   }, [nest])
   const all = runs(parts)
   // While it runs, every part is in the work, in the order they came:
-  // nothing moves from the answer into the work as the next step comes,
-  // and nothing remounts. Once over, what it said after its last work is
-  // its answer, under the work.
+  // nothing moves from the answer into the work as the next step comes.
+  // Once over, what it said after its last work is its answer, under the
+  // work.
   const lastWork =
     running || segment?.last === false
       ? all.length - 1
@@ -2881,7 +2881,16 @@ function Segment({
           (run) => run.type === "work" || run.type === "superseded"
         )
   const work = all.slice(0, lastWork + 1)
-  const answer = all.slice(lastWork + 1) as (AgentContent | AgentTurnEvent)[]
+  // What it is saying after its last step is drawn in the answer's place
+  // already, just under the work's panel, where it stands in the panel:
+  // as the turn ends it stays mounted, not mounted again (a long answer's
+  // Markdown parsed and laid out again, as the turn stops). A step after
+  // it moves it into the panel, while it is short.
+  let shownAt = lastWork + 1
+  if (running && segment?.last !== false)
+    while (shownAt > 0 && all[shownAt - 1]!.type === "content") shownAt--
+  const shown = all.slice(0, shownAt)
+  const answer = all.slice(shownAt) as (AgentContent | AgentTurnEvent)[]
   const keptParts = work.flatMap((run) =>
     run.type === "work"
       ? // A step still under way, once the turn has ended (a subagent
@@ -3028,10 +3037,10 @@ function Segment({
               kept={
                 keptParts.length > 0 ? <Kept parts={keptParts} /> : undefined
               }
-              findText={() => partsText(work)}
+              findText={() => partsText(shown)}
             >
               <StepsState steps={steps} onRetry={onLoadSteps} />
-              {renderTurnRuns(work, false)}
+              {renderTurnRuns(shown, false)}
               {pending && work.length > 0 && <PendingStep />}
             </TurnWork>
           )
@@ -3042,7 +3051,7 @@ function Segment({
               key={part.id}
               part={part}
               className={cn(
-                (index > 0 || work.length > 0 || steps !== undefined) && "mt-3"
+                (index > 0 || shown.length > 0 || steps !== undefined) && "mt-3"
               )}
             />
           ) : (
@@ -3054,9 +3063,12 @@ function Segment({
                 // Under what the open work said last, as close as between
                 // steps; under its last step's line, its closed title, a
                 // thought alone, or more it said, a paragraph's distance.
+                // Under an open panel with nothing in it yet (all it said
+                // so far is this), where it would stand in the panel.
                 index === 0 &&
                   (work.length > 0 || steps !== undefined) &&
-                  (open && !thoughtOnly && work.at(-1)?.type === "content"
+                  !(open && shown.length === 0 && steps === undefined) &&
+                  (open && !thoughtOnly && shown.at(-1)?.type === "content"
                     ? "mt-1"
                     : "mt-3"),
                 index > 0 && "mt-3",

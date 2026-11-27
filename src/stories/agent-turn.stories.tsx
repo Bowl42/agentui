@@ -4810,6 +4810,73 @@ export const FooterStopped: Story = {
 }
 
 /**
+ * What it was saying as it ended stays mounted: drawn in the answer's
+ * place already while it ran, under its steps (or alone), it is not
+ * mounted again as the turn stops or finishes. A long answer's Markdown
+ * would be parsed and laid out again, all of it, as the reader stopped
+ * it. Its place while running is where it stood in the open work.
+ */
+export const EndsInPlace: Story = {
+  args: { id: "", status: "done", parts: [] },
+  render: function Render() {
+    const [status, setStatus] = React.useState<"running" | "stopped">("running")
+    const words = "Checks passed and the tag is in place. Next I'll publish"
+    return (
+      <div className="flex flex-col items-start gap-4">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setStatus("stopped")}
+        >
+          Stop
+        </Button>
+        <AgentTurn
+          id="turn:steps"
+          status={status}
+          duration="1m 12s"
+          parts={[...build.slice(0, 2), text("answer:steps", words)]}
+        />
+        <AgentTurn
+          id="turn:alone"
+          status={status}
+          duration="12s"
+          parts={[text("answer:alone", words)]}
+        />
+      </div>
+    )
+  },
+  play: async ({ canvas, canvasElement }) => {
+    const said = () =>
+      [...canvasElement.querySelectorAll("p")].filter((p) =>
+        p.textContent!.startsWith("Checks passed")
+      )
+    const before = said()
+    await expect(before).toHaveLength(2)
+    // Where it stands as it runs: as close under its step as a step's
+    // words are, and under the bare title as in the panel.
+    const [steps, alone] = canvasElement.querySelectorAll<HTMLElement>(
+      "[data-slot=agent-turn]"
+    )
+    const answerOf = (turn: HTMLElement) =>
+      turn.querySelector<HTMLElement>("[data-slot=agent-turn-answer]")!
+    await expect(answerOf(steps!)).toHaveClass("mt-3")
+    await expect(answerOf(alone!)).not.toHaveClass("mt-3")
+    const header = alone!.querySelector("[data-slot=agent-turn-work-header]")!
+    await expect(
+      answerOf(alone!).getBoundingClientRect().top -
+        header.getBoundingClientRect().bottom
+    ).toBeCloseTo(8, 0)
+    await userEvent.click(canvas.getByRole("button", { name: "Stop" }))
+    await waitFor(() => expect(steps).toHaveAttribute("data-status", "stopped"))
+    // The same elements, kept, dimmed.
+    const after = said()
+    await expect(after[0]).toBe(before[0])
+    await expect(after[1]).toBe(before[1])
+    await expect(answerOf(steps!)).toHaveClass("text-muted-foreground")
+  },
+}
+
+/**
  * On a phone: copy, retry and more, a finger's size, and only the time;
  * the facts' numbers are a press away.
  */
