@@ -1171,6 +1171,73 @@ export const WindowedFling: Story = {
   },
 }
 
+/**
+ * Messages far taller than the 10rem box they wait in, never measured
+ * (a long answer each): a jump to them brings several boxes near at
+ * once. They mount nearest first, each laid out before the rest are
+ * looked at again, so the first, as tall as many views, pushes the others
+ * out of reach and they stay boxes, not mounted only to be unmounted.
+ * Nothing in view is drawn as an empty box.
+ */
+export const WindowedEnteringTogether: Story = {
+  render: () => (
+    <div className="flex h-120 w-md max-w-full flex-col overflow-hidden rounded-xl border">
+      <MessageScrollerProvider>
+        <MessageScroller>
+          <MessageScrollerViewport aria-label="Conversation">
+            <MessageScrollerContent className="p-4">
+              {Array.from({ length: 40 }, (_, index) => (
+                <MessageScrollerItem key={index} messageId={`long-${index}`}>
+                  <Message>
+                    <MessageContent>
+                      {index < 20 ? (
+                        // As tall as a long answer, ten views.
+                        <div className="h-[4800px]">Long answer {index}</div>
+                      ) : (
+                        <Bubble variant="muted">
+                          <BubbleContent>{`Short message ${index}.`}</BubbleContent>
+                        </Bubble>
+                      )}
+                    </MessageContent>
+                  </Message>
+                </MessageScrollerItem>
+              ))}
+            </MessageScrollerContent>
+          </MessageScrollerViewport>
+        </MessageScroller>
+      </MessageScrollerProvider>
+    </div>
+  ),
+  play: async ({ canvas }) => {
+    const viewport = canvas.getByRole("region", { name: "Conversation" })
+    await still(viewport)
+    // Each long one mounted since, if only for a moment.
+    const mounted = new Set<number>()
+    const watch = new MutationObserver((records) => {
+      for (const { target } of records) {
+        const item = target as HTMLElement
+        const index = Number(item.dataset.messageId?.slice(5))
+        if (index < 20 && !item.hasAttribute("data-windowed"))
+          mounted.add(index)
+      }
+    })
+    watch.observe(viewport, {
+      attributes: true,
+      attributeFilter: ["data-windowed"],
+      subtree: true,
+    })
+    // The jump to the start: four boxes in view, and more in reach.
+    viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }))
+    viewport.scrollTop = 0
+    const blanks = await blanksDrawn(() => viewport, 3)
+    await still(viewport)
+    watch.disconnect()
+    await expect(blanks).toEqual([])
+    await expect(canvas.getByText("Long answer 0")).toBeVisible()
+    await expect([...mounted]).toEqual([0])
+  },
+}
+
 /** Switching between two long conversations, one put at a message. */
 function Switching() {
   const [which, setWhich] = React.useState<"a" | "b">("a")

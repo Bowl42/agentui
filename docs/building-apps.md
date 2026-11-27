@@ -369,7 +369,12 @@ and mounts again as the reader comes near (`windowed`, on by default on
 `MessageScrollerProvider`). A thousand turns of Markdown, code and tool
 rows scroll at the display's rate in WebKit, with some 2,700 elements
 mounted instead of 66,000, and open in 4 s instead of 33. Pass every
-message as an item; nothing else is needed. While the reader scrolls,
+message as an item; nothing else is needed. Messages that come near
+together (a jump to ones never measured, each still a 10rem box) mount
+nearest first, one at a time, each laid out before the rest are looked
+at again: a 256 KiB answer pushes the others out of reach, and they stay
+unmounted (a jump that brought four such answers near took one 542 ms
+task, now 147 ms). While the reader scrolls,
 what they look at stays put as the messages above it mount at their real
 height, in every browser; nothing is read before a frame's layout and
 the scroll is never moved but by them, except by how much a message
@@ -474,7 +479,12 @@ Apps should follow the same rules:
   before it folds as one, so a turn that has ended reads as its title
   and its answer. While the turn runs every part is in its work, in the
   order it came, what the agent says at the answer's size and edge: nothing
-  moves into a fold or remounts as the next step comes. The work folds
+  moves into a fold or remounts as the next step comes. What it says
+  after its last step stands in the answer's place already, just under
+  the work's panel where it would be in it, so as the turn ends it stays
+  mounted (a 256 KiB answer's turn stopping took 160 ms, its Markdown
+  mounted again; now 20 ms), and closing the work while it runs leaves
+  it in sight. The work folds
   once, when the turn ends, and only if the reader never opened or closed
   anything in it while it ran; the answer, at the end of the scroller,
   does not move.

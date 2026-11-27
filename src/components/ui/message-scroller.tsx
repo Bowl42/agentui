@@ -130,22 +130,78 @@ function createWindowing(viewport: () => HTMLElement | null) {
   let all = 0
   const listeners = new Set<() => void>()
 
+  // Boxes come near together (a jump, or boxes of 10rem, never measured,
+  // many in a view): they mount nearest first, one at a time, each laid
+  // out before the rest are looked at again, so those it pushed out of
+  // reach do not mount. A long answer (thousands of paragraphs) takes the
+  // place of five boxes; all six mounting in one task held the page for
+  // the five it pushed away. Those in view mount at once, before the
+  // frame is drawn; past a few milliseconds, the rest a frame later each.
+  // Each queued box, and whether it may have moved since it was queued
+  // (one mounted since, or a frame passed).
+  const queued = new Map<Element, boolean>()
+  let later = 0
+  const settle = () => {
+    later = 0
+    const root = viewport()
+    if (!root || all > 0) {
+      // All mount anyway (or nothing to measure by): as they came.
+      const mount = [...queued.keys()].flatMap((row) => boxes.get(row) ?? [])
+      queued.clear()
+      if (mount.length > 0) flushSync(() => mount.forEach((box) => box()))
+      return
+    }
+    const start = performance.now()
+    while (queued.size > 0) {
+      const view = root.getBoundingClientRect()
+      let nearest: Element | null = null
+      let distance = Infinity
+      for (const [row, moved] of queued) {
+        const rect = row.isConnected && row.getBoundingClientRect()
+        const away = rect
+          ? Math.max(view.top - rect.bottom, rect.top - view.bottom, 0)
+          : Infinity
+        // Pushed out of the near observer's reach (a view past the
+        // viewport) by one mounted since, or mounted itself: the observer
+        // tells again if it comes near. Else as near as it was told.
+        if (!boxes.has(row) || (moved && away > view.height + 2))
+          queued.delete(row)
+        else if (away < distance) {
+          distance = away
+          nearest = row
+        }
+      }
+      if (!nearest) return
+      if (distance > 0 && performance.now() - start > 4) {
+        // By then the reader may have scrolled them away too.
+        for (const row of queued.keys()) queued.set(row, true)
+        later = window.requestAnimationFrame(settle)
+        return
+      }
+      queued.delete(nearest)
+      flushSync(boxes.get(nearest)!)
+      for (const row of queued.keys()) queued.set(row, true)
+    }
+  }
+  const queue = (row: Element) => {
+    queued.set(row, false)
+    if (later) window.cancelAnimationFrame(later)
+    later = 0
+  }
+
   /** Mounts the boxes within a view of the viewport, before it is drawn. */
   const reveal = () => {
     const root = viewport()
     const content = root?.firstElementChild
     if (boxes.size === 0 || all > 0 || !root || !content) return
     const view = root.getBoundingClientRect()
-    const mount: (() => void)[] = []
     for (const row of rowsBetween(
       content,
       view.top - view.height,
       view.bottom + view.height
-    )) {
-      const box = boxes.get(row)
-      if (box) mount.push(box)
-    }
-    if (mount.length > 0) flushSync(() => mount.forEach((box) => box()))
+    ))
+      if (boxes.has(row)) queue(row)
+    settle()
   }
   // Looked for only where a frame's scroll outran the near observer: by
   // half a view or more since the frame before (where it last looked), as
@@ -180,7 +236,10 @@ function createWindowing(viewport: () => HTMLElement | null) {
     near = new IntersectionObserver(
       (entries) => {
         for (const entry of latest(entries))
-          if (entry.isIntersecting) items.get(entry.target)?.near()
+          if (!entry.isIntersecting) continue
+          else if (boxes.has(entry.target)) queue(entry.target)
+          else items.get(entry.target)?.near()
+        if (queued.size > 0) settle()
       },
       { root, rootMargin: windowNear }
     )
@@ -270,7 +329,9 @@ function createWindowing(viewport: () => HTMLElement | null) {
       sizes?.disconnect()
       scrolled?.removeEventListener("scroll", onScroll)
       window.cancelAnimationFrame(frame)
-      frame = 0
+      window.cancelAnimationFrame(later)
+      frame = later = 0
+      queued.clear()
       near = far = sizes = scrolled = null
       items.clear()
       boxes.clear()
