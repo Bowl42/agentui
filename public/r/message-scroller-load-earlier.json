@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "message-scroller-load-earlier",
+  "title": "Message Scroller Load Earlier",
+  "description": "Loads the messages before those a long conversation shows: a button floating at the top of a MessageScroller, shown while the reader is at the start or while they load, with a spinner and no second load while they do; hidden once they came in above, it hands the focus to the viewport.",
+  "dependencies": [
+    "cn"
+  ],
+  "registryDependencies": [
+    "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.32/public/r/floating-button.json",
+    "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.32/public/r/message-scroller.json",
+    "https://raw.githubusercontent.com/Bowl42/agentui/v0.1.32/public/r/spinner.json"
+  ],
+  "files": [
+    {
+      "path": "src/components/message-scroller-load-earlier.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { cn } from \"cn\"\n\nimport { FloatingButton } from \"@/components/floating-button\"\nimport { useMessageScrollerScrollable } from \"@/components/ui/message-scroller\"\nimport { Spinner } from \"@/components/ui/spinner\"\n\n/**\n * Loads the messages before those a long conversation shows, so the\n * scroller has a bounded number to track: a button floating at the top of\n * a `MessageScroller`, shown while the reader is at the start, or while\n * they load. The app loads them in `onClick` and sets `loading` until they\n * are there; the scroller keeps the messages in view where they are as\n * they come in above. Render it only while there are earlier ones.\n */\nfunction MessageScrollerLoadEarlier({\n  loading = false,\n  loadingLabel = \"Loading earlier messages\",\n  children = \"Load earlier messages\",\n  className,\n  onClick,\n  ref,\n  ...props\n}: React.ComponentProps<typeof FloatingButton> & {\n  /** The earlier messages are on their way: a spinner, and no second load. */\n  loading?: boolean\n  /** Its words while they load. */\n  loadingLabel?: React.ReactNode\n}) {\n  const { start } = useMessageScrollerScrollable()\n  const active = !start || loading\n  const button = React.useRef<HTMLButtonElement | null>(null)\n  const setRef = React.useCallback(\n    (node: HTMLButtonElement | null) => {\n      button.current = node\n      if (typeof ref === \"function\") return ref(node)\n      if (ref) ref.current = node\n    },\n    [ref]\n  )\n\n  // Hidden once the messages came in above, it hands the focus to the\n  // viewport, where the keyboard scrolls on, not to the page.\n  React.useEffect(() => {\n    const node = button.current\n    if (active || !node || document.activeElement !== node) return\n    node\n      .closest(\"[data-slot=message-scroller]\")\n      ?.querySelector<HTMLElement>(\"[data-slot=message-scroller-viewport]\")\n      ?.focus({ preventScroll: true })\n  }, [active])\n\n  return (\n    <FloatingButton\n      ref={setRef}\n      data-slot=\"message-scroller-load-earlier\"\n      data-active={active}\n      inert={!active}\n      aria-disabled={loading || undefined}\n      onClick={(event) => {\n        if (loading) return\n        onClick?.(event)\n      }}\n      className={cn(\n        \"absolute inset-s-1/2 top-4 z-10 -translate-x-1/2 transition-[translate,opacity] motion-pop data-[active=false]:pointer-events-none data-[active=false]:-translate-y-full data-[active=false]:opacity-0 motion-reduce:transition-opacity motion-reduce:data-[active=false]:translate-y-0 rtl:translate-x-1/2\",\n        className\n      )}\n      {...props}\n    >\n      {loading && <Spinner aria-hidden=\"true\" />}\n      <span aria-live=\"polite\">{loading ? loadingLabel : children}</span>\n    </FloatingButton>\n  )\n}\n\nexport { MessageScrollerLoadEarlier }\n",
+      "type": "registry:component"
+    }
+  ],
+  "type": "registry:component"
+}
