@@ -43,6 +43,11 @@ export default mergeConfig(
       // that, the longest stories (a phone's or a tablet's app, some 8s)
       // pass 15s while other work loads it too.
       testTimeout: process.env.CI ? 60_000 : 30_000,
+      // The browsers' test pages served on 127.0.0.1, and opened there: on
+      // "localhost" the server took a port free on ::1 but held on
+      // 127.0.0.1 by another program (a container's forwarded port), and
+      // Firefox, going to 127.0.0.1, found that one, never the tests.
+      api: { host: "127.0.0.1" },
       projects: [
         {
           // Plain functions, e.g. a parser: in Node, no browser.
