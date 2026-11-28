@@ -140,9 +140,25 @@ function createWindowing(viewport: () => HTMLElement | null) {
   // Each queued box, and whether it may have moved since it was queued
   // (one mounted since, or a frame passed).
   const queued = new Map<Element, boolean>()
+  // The rest's turn: in the task after the next frame is drawn, as an
+  // observer's (in the frame, its reads would force a layout before the
+  // frame's own).
   let later = 0
-  const settle = () => {
+  let laterTask: ReturnType<typeof setTimeout> | undefined
+  const after = () => {
+    later = window.requestAnimationFrame(() => {
+      later = 0
+      laterTask = setTimeout(() => settle())
+    })
+  }
+  const cancel = () => {
+    window.cancelAnimationFrame(later)
+    clearTimeout(laterTask)
     later = 0
+    laterTask = undefined
+  }
+  const settle = (budget = true) => {
+    laterTask = undefined
     const root = viewport()
     if (!root || all > 0) {
       // All mount anyway (or nothing to measure by): as they came.
@@ -152,6 +168,7 @@ function createWindowing(viewport: () => HTMLElement | null) {
       return
     }
     const start = performance.now()
+    let mounted = 0
     while (queued.size > 0) {
       const view = root.getBoundingClientRect()
       let nearest: Element | null = null
@@ -164,29 +181,42 @@ function createWindowing(viewport: () => HTMLElement | null) {
         // Pushed out of the near observer's reach (a view past the
         // viewport) by one mounted since, or mounted itself: the observer
         // tells again if it comes near. Else as near as it was told.
-        if (!boxes.has(row) || (moved && away > view.height + 2))
+        if (!boxes.has(row)) queued.delete(row)
+        else if (moved && away > view.height + 2) {
           queued.delete(row)
+          // Asked again of the observer, as the page is laid out next:
+          // what it says then counts, not this read (a scroll anchored
+          // after it may bring the row back).
+          near?.unobserve(row)
+          near?.observe(row)
+        }
         else if (away < distance) {
           distance = away
           nearest = row
         }
       }
       if (!nearest) return
-      if (distance > 0 && performance.now() - start > 4) {
+      // At least the nearest each turn, so each turn gets on.
+      if (
+        budget &&
+        distance > 0 &&
+        mounted > 0 &&
+        performance.now() - start > 4
+      ) {
         // By then the reader may have scrolled them away too.
         for (const row of queued.keys()) queued.set(row, true)
-        later = window.requestAnimationFrame(settle)
+        after()
         return
       }
       queued.delete(nearest)
       flushSync(boxes.get(nearest)!)
+      mounted += 1
       for (const row of queued.keys()) queued.set(row, true)
     }
   }
   const queue = (row: Element) => {
     queued.set(row, false)
-    if (later) window.cancelAnimationFrame(later)
-    later = 0
+    cancel()
   }
 
   /** Mounts the boxes within a view of the viewport, before it is drawn. */
@@ -201,7 +231,9 @@ function createWindowing(viewport: () => HTMLElement | null) {
       view.bottom + view.height
     ))
       if (boxes.has(row)) queue(row)
-    settle()
+    // In the frame, before its paint: all in reach, as the scroll may be
+    // anchored again before the frame is drawn.
+    settle(false)
   }
   // Looked for only where a frame's scroll outran the near observer: by
   // half a view or more since the frame before (where it last looked), as
@@ -329,8 +361,8 @@ function createWindowing(viewport: () => HTMLElement | null) {
       sizes?.disconnect()
       scrolled?.removeEventListener("scroll", onScroll)
       window.cancelAnimationFrame(frame)
-      window.cancelAnimationFrame(later)
-      frame = later = 0
+      cancel()
+      frame = 0
       queued.clear()
       near = far = sizes = scrolled = null
       items.clear()
