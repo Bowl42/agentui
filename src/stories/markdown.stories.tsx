@@ -1759,10 +1759,18 @@ export const StreamedBlocks: Story = {
   },
   play: async ({ canvasElement }) => {
     const root = canvasElement.querySelector<HTMLElement>("[data-length]")!
-    const html = (id: string) =>
-      canvasElement
+    // Its code's highlighting left out: it comes in when the highlighter
+    // is done, in one before the other.
+    const html = (id: string) => {
+      const copy = canvasElement
         .querySelector(`[data-testid=${id}] [data-slot=markdown]`)!
-        .innerHTML.replace(/_r_[\w]+_/g, "id")
+        .cloneNode(true) as Element
+      for (const line of copy.querySelectorAll(
+        "[data-slot=code-block-line-content]"
+      ))
+        line.replaceChildren(line.textContent ?? "")
+      return copy.innerHTML.replace(/_r_[\w]+_/g, "id")
+    }
     let seen = -1
     while (Number(root.dataset.length) < streamedDoc.length) {
       await waitFor(() =>
